@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Create New Batch Card -->
+    <div class="col-sm-12 col-xl-4">
+      <div class="card">
+        <div class="card-header">
+          <h5>{{ breadcrumb.parent }}</h5>
+          <span>Create and manage batches</span>
+        </div>
+        <div class="card-body">
+          <!-- Add Batch Button -->
+          <div class="add-batch-btn-wrapper">
+            <button class="btn btn-primary w-100" id="showCreateForm">
+              <i class="fa fa-plus"></i> Create New Batch
+            </button>
+          </div>
+          
+          <!-- Create Form (Initially Hidden) -->
+          <div class="new-batch-wrapper" style="display: none;">
+            <form id="createBatchForm">
+              <div class="mb-3">
+                <label class="form-label">Batch Name</label>
+                <input type="text" class="form-control" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="3"></textarea>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-danger" id="cancelCreate">Cancel</button>
+                <button type="submit" class="btn btn-success flex-grow-1">Create Batch</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Tabs -->
+    <div class="col-sm-12 col-xl-8">
+      {% include 'pages/batch/BatchTabs.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+  // Get DOM elements
+  const showCreateForm = document.getElementById('showCreateForm');
+  const createForm = document.querySelector('.new-batch-wrapper');
+  const cancelCreate = document.getElementById('cancelCreate');
+  const batchForm = document.getElementById('createBatchForm');
+
+  // Show create form
+  showCreateForm.addEventListener('click', () => {
+    console.log('Show button clicked');
+    showCreateForm.style.display = 'none';
+    createForm.style.display = 'block';
+  });
+
+  // Cancel create form
+  cancelCreate.addEventListener('click', () => {
+    console.log('Cancel button clicked');
+    createForm.style.display = 'none';
+    showCreateForm.style.display = 'block';
+  });
+
+  // Handle form submission
+  batchForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    console.log('Form submitted');
+
+    // Show loading state
+    Swal.fire({
+      title: 'Creating batch...',
+      text: 'Please wait',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Get form data
+    const formData = new FormData(batchForm);
+    
+    // Debug log form data
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    try {
+      const response = await fetch('/batch/create', {
+        method: 'POST',
+        body: formData
+      });
+
+      console.log('Response status:', response.status); // Debug log
+      
+      const result = await response.json();
+      console.log('Response data:', result); // Debug log
+
+      if (result.success) {
+        // Success message
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: result.message || 'Batch created successfully',
+          customClass: {
+            confirmButton: 'btn btn-primary'
+          },
+          buttonsStyling: false
+        }).then(() => {
+          // Reset form and UI
+          batchForm.reset();
+          createForm.style.display = 'none';
+          showCreateForm.style.display = 'block';
+          // Reload page to show new batch
+          window.location.reload();
+        });
+      } else {
+        // Error message with more details
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: result.error || 'Failed to create batch',
+          customClass: {
+            confirmButton: 'btn btn-primary'
+          },
+          buttonsStyling: false
+        });
+      }
+    } catch (error) {
+      console.error('Fetch error:', error); // More detailed error logging
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Failed to create batch: ' + error.message,
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        },
+        buttonsStyling: false
+      });
+    }
+  });
+</script>
+{% endblock %}
+
+{% block css %}
+<style>
+.new-batch-wrapper {
+    margin-top: 20px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.btn i {
+    font-size: 1rem;
+}
+</style>
+{% endblock %}

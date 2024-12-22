@@ -1,0 +1,176 @@
+<div class="card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h5>Batch Details</h5>
+        <p class="mt-1">View items by tier</p>
+      </div>
+      <div class="col-auto">
+        <select class="form-select" id="batchSelector">
+          <option value="">Select a Batch</option>
+          {% for batch in batches %}
+          <option value="{{ batch.id }}">
+            {{ batch.name }} ({{ batch.total_items }} items)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="card-body bottom-border-tab">
+    <div id="batchContent" style="display: none;">
+      <ul class="nav nav-tabs border-tab mb-0" id="bottom-tab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link nav-border txt-primary tab-primary active" id="tier-s-tab" data-bs-toggle="tab" href="#tier-s" role="tab">
+            <i class="fa fa-star"></i> S Tier <span class="tier-count badge bg-primary">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-border txt-primary tab-primary" id="tier-a-tab" data-bs-toggle="tab" href="#tier-a" role="tab">
+            <i class="fa fa-award"></i> A Tier <span class="tier-count badge bg-primary">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-border txt-primary tab-primary" id="tier-b-tab" data-bs-toggle="tab" href="#tier-b" role="tab">
+            <i class="fa fa-certificate"></i> B Tier <span class="tier-count badge bg-primary">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-border txt-primary tab-primary" id="tier-c-tab" data-bs-toggle="tab" href="#tier-c" role="tab">
+            <i class="fa fa-check-circle"></i> C Tier <span class="tier-count badge bg-primary">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-border txt-primary tab-primary" id="tier-r-tab" data-bs-toggle="tab" href="#tier-r" role="tab">
+            <i class="fa fa-circle"></i> R Tier <span class="tier-count badge bg-primary">0</span>
+          </a>
+        </li>
+      </ul>
+      <div class="tab-content" id="border-tabContent">
+        {% for tier in ['s', 'a', 'b', 'c', 'r'] %}
+        <div class="tab-pane fade {% if tier == 's' %}show active{% endif %}" 
+             id="tier-{{ tier }}" role="tabpanel">
+          <div class="tier-content">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Image</th>
+                      <th>Confidence</th>
+                      <th>Price</th>
+                      <th>Expiry Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tier-{{ tier }}-content">
+                    <tr>
+                      <td colspan="6" class="text-center">Select a batch to view items</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div id="noBatchSelected" class="text-center py-5">
+      <i class="fa fa-box fa-3x text-muted mb-3"></i>
+      <h6>Select a batch to view details</h6>
+    </div>
+  </div>
+</div>
+
+{% block scriptcontent %}
+<script>
+document.getElementById('batchSelector').addEventListener('change', async function() {
+  const batchId = this.value;
+  const batchContent = document.getElementById('batchContent');
+  const noBatchSelected = document.getElementById('noBatchSelected');
+  
+  if (!batchId) {
+    batchContent.style.display = 'none';
+    noBatchSelected.style.display = 'block';
+    return;
+  }
+
+  // Show loading state
+  Swal.fire({
+    title: 'Loading batch details...',
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const response = await fetch(`/api/batch/${batchId}/items`);
+    const data = await response.json();
+
+    if (data.success) {
+      // Update tier counts
+      ['s', 'a', 'b', 'c', 'r'].forEach(tier => {
+        const count = data.items.filter(item => item.tier.toLowerCase() === tier).length;
+        document.querySelector(`#tier-${tier}-tab .tier-count`).textContent = count;
+      });
+
+      // Update tier contents
+      ['s', 'a', 'b', 'c', 'r'].forEach(tier => {
+        const items = data.items.filter(item => item.tier.toLowerCase() === tier);
+        const tbody = document.getElementById(`tier-${tier}-content`);
+        
+        if (items.length > 0) {
+          tbody.innerHTML = items.map(item => `
+            <tr>
+              <td>${item.id}</td>
+              <td>
+                <img src="${item.image_path}" alt="Item ${item.id}" class="img-thumbnail" style="height: 50px;">
+              </td>
+              <td>${(item.confidence * 100).toFixed(1)}%</td>
+              <td>$${item.price.toFixed(2)}</td>
+              <td>${new Date(item.expiry_date).toLocaleDateString()}</td>
+              <td>
+                <button class="btn btn-primary btn-sm" onclick="viewItem(${item.id})">
+                  <i class="fa fa-eye"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="text-center">No items in this tier</td>
+            </tr>
+          `;
+        }
+      });
+
+      batchContent.style.display = 'block';
+      noBatchSelected.style.display = 'none';
+      Swal.close();
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: error.message || 'Failed to load batch details',
+      customClass: {
+        confirmButton: 'btn btn-primary'
+      },
+      buttonsStyling: false
+    });
+  }
+});
+
+function viewItem(itemId) {
+  // Implement item view functionality
+  console.log('View item:', itemId);
+}
+</script>
+{% endblock %}
