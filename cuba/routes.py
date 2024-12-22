@@ -245,6 +245,7 @@ def delete_batch(batch_id):
 @main.route('/api/batch/<int:batch_id>/items')
 def get_batch_items(batch_id):
     try:
+        # Get batch items data
         batch = Batch.query.get_or_404(batch_id)
         items = Produce.query.filter_by(batch_id=batch_id).all()
         
@@ -252,18 +253,22 @@ def get_batch_items(batch_id):
             'success': True,
             'items': [{
                 'id': item.id,
-                'image_path': item.image_path,
-                'confidence': item.confidence,
                 'tier': item.tier,
-                'price': item.price,
-                'expiry_date': item.expiry_date.isoformat(),
+                'price': float(item.price) if item.price else 0,
+                'capacity': 1,  # Each Produce item represents a single orange
+                'expiry_date': item.expiry_date.isoformat() if item.expiry_date else None,
+                'market_recommendation': item.market_recommendation,
+                'confidence': item.confidence,
+                'coordinates': [item.x1, item.y1, item.x2, item.y2] if all([item.x1, item.y1, item.x2, item.y2]) else None,
+                'stock_id': item.stock_id
             } for item in items]
         })
     except Exception as e:
+        print(f"Error in get_batch_items: {str(e)}")  # For debugging
         return jsonify({
             'success': False,
             'error': str(e)
-        })
+        }), 500
 
 @main.route('/save-detection-results', methods=['POST'])
 def save_detection_results():
@@ -352,3 +357,83 @@ def save_detection_results():
             'success': False,
             'error': str(e)
         })
+
+@main.route('/save-detection', methods=['POST'])
+def save_detection():
+    try:
+        data = request.json
+        batch_id = data.get('batch_id')
+        
+        if not batch_id:
+            return jsonify({
+                'success': False,
+                'error': 'No batch ID provided'
+            })
+
+        # Create new detection record
+        detection = Detection(
+            batch_id=batch_id,
+            fresh_count=data.get('fresh_count', 0),
+            bad_count=data.get('bad_count', 0),
+            fresh_analysis=data.get('fresh_analysis'),
+            bad_analysis=data.get('bad_analysis'),
+            fresh_detections=data.get('fresh_detections'),
+            bad_detections=data.get('bad_detections')
+        )
+        
+        db.session.add(detection)
+
+        # Get the batch and create Produce records for each detection
+        batch = Batch.query.get(batch_id)
+        
+        if not batch:
+            raise Exception('Batch not found')
+
+        # Process fresh detections
+        for detection in data.get('fresh_detections', []):
+            produce = Produce(
+                batch_id=batch_id,
+                confidence=detection['confidence'],
+                tier=detection['tier'],
+                price=detection['predicted_price'],
+                expiry_date=datetime.strptime(detection['expiry_date'], '%Y-%m-%d'),
+                market_recommendation=detection['market_recommendation'],
+                x1=detection['coordinates'][0],
+                y1=detection['coordinates'][1],
+                x2=detection['coordinates'][2],
+                y2=detection['coordinates'][3]
+            )
+            db.session.add(produce)
+
+        # Process bad detections
+        for detection in data.get('bad_detections', []):
+            produce = Produce(
+                batch_id=batch_id,
+                confidence=detection['confidence'],
+                tier=detection['tier'],
+                price=detection['predicted_price'],
+                expiry_date=datetime.strptime(detection['expiry_date'], '%Y-%m-%d'),
+                market_recommendation=detection['market_recommendation'],
+                x1=detection['coordinates'][0],
+                y1=detection['coordinates'][1],
+                x2=detection['coordinates'][2],
+                y2=detection['coordinates'][3]
+            )
+            db.session.add(produce)
+
+        # Update batch analysis
+        batch.update_analysis()
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Detection results saved successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })      

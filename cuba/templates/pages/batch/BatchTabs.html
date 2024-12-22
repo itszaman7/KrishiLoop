@@ -3,80 +3,417 @@
     <div class="row align-items-center">
       <div class="col">
         <h5>Batch Details</h5>
-        <p class="mt-1">View items by tier</p>
+        <p class="mt-1">View items by tier with market recommendations</p>
       </div>
       <div class="col-auto">
         <select class="form-select" id="batchSelector">
           <option value="">Select a Batch</option>
           {% for batch in batches %}
-          <option value="{{ batch.id }}">
-            {{ batch.name }} ({{ batch.total_items }} items)
-          </option>
+          <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.total_items }} items)</option>
           {% endfor %}
         </select>
       </div>
     </div>
   </div>
-  <div class="card-body bottom-border-tab">
+  
+  <div class="card-body">
+    <!-- Batch Content -->
     <div id="batchContent" style="display: none;">
-      <ul class="nav nav-tabs border-tab mb-0" id="bottom-tab" role="tablist">
-        <li class="nav-item">
-          <a class="nav-link nav-border txt-primary tab-primary active" id="tier-s-tab" data-bs-toggle="tab" href="#tier-s" role="tab">
-            <i class="fa fa-star"></i> S Tier <span class="tier-count badge bg-primary">0</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link nav-border txt-primary tab-primary" id="tier-a-tab" data-bs-toggle="tab" href="#tier-a" role="tab">
-            <i class="fa fa-award"></i> A Tier <span class="tier-count badge bg-primary">0</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link nav-border txt-primary tab-primary" id="tier-b-tab" data-bs-toggle="tab" href="#tier-b" role="tab">
-            <i class="fa fa-certificate"></i> B Tier <span class="tier-count badge bg-primary">0</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link nav-border txt-primary tab-primary" id="tier-c-tab" data-bs-toggle="tab" href="#tier-c" role="tab">
-            <i class="fa fa-check-circle"></i> C Tier <span class="tier-count badge bg-primary">0</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link nav-border txt-primary tab-primary" id="tier-r-tab" data-bs-toggle="tab" href="#tier-r" role="tab">
-            <i class="fa fa-circle"></i> R Tier <span class="tier-count badge bg-primary">0</span>
-          </a>
-        </li>
-      </ul>
-      <div class="tab-content" id="border-tabContent">
-        {% for tier in ['s', 'a', 'b', 'c', 'r'] %}
-        <div class="tab-pane fade {% if tier == 's' %}show active{% endif %}" 
-             id="tier-{{ tier }}" role="tabpanel">
-          <div class="tier-content">
-            <div class="card-body">
-              <div class="table-responsive">
+      <!-- Tier Accordions -->
+      <div class="accordion accordion-flush" id="tierAccordion">
+        <!-- S Tier -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="tier-s-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tier-s-content">
+              <i class="fa fa-star me-2"></i> S Tier 
+              <span class="badge bg-primary ms-2 tier-count">0</span>
+            </button>
+          </h2>
+          <div id="tier-s-content" class="accordion-collapse collapse show" data-bs-parent="#tierAccordion">
+            <div class="accordion-body">
+              <!-- Summary Cards -->
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                      <h6>Total Stocks</h6>
+                      <h3 class="stock-count mb-0">0</h3>
+                      <small class="text-white-50">1 Stock = 64 Oranges</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Price/Stock</h6>
+                      <h3 class="avg-price mb-0">0 BDT</h3>
+                      <small class="text-white-50">Based on market data</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                      <h6>Expected Profit</h6>
+                      <h3 class="expected-profit mb-0">0 BDT</h3>
+                      <small class="text-white-50">Per stock</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Expiry</h6>
+                      <h3 class="avg-expiry mb-0">-</h3>
+                      <small class="text-white-50">Days remaining</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stocks Table -->
+              <div class="table-responsive mb-4">
                 <table class="table">
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Image</th>
-                      <th>Confidence</th>
-                      <th>Price</th>
-                      <th>Expiry Date</th>
-                      <th>Actions</th>
+                      <th>Stock</th>
+                      <th>Oranges</th>
+                      <th>Avg. Quality</th>
+                      <th>Price/Stock</th>
+                      <th>Earliest Expiry</th>
+                      <th>Details</th>
                     </tr>
                   </thead>
-                  <tbody id="tier-{{ tier }}-content">
-                    <tr>
-                      <td colspan="6" class="text-center">Select a batch to view items</td>
-                    </tr>
-                  </tbody>
+                  <tbody class="stock-summary"></tbody>
                 </table>
+              </div>
+
+              <!-- Market Recommendations -->
+              <div class="market-recommendations mt-4">
+                <h6 class="mb-3">Recommended Markets</h6>
+                <div class="row g-3" id="marketCards">
+                    <!-- Cards will be populated dynamically -->
+                </div>
               </div>
             </div>
           </div>
         </div>
-        {% endfor %}
+
+        <!-- A Tier -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="tier-a-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tier-a-content">
+              <i class="fa fa-award me-2"></i> A Tier
+              <span class="badge bg-primary ms-2 tier-count">0</span>
+            </button>
+          </h2>
+          <div id="tier-a-content" class="accordion-collapse collapse" data-bs-parent="#tierAccordion">
+            <div class="accordion-body">
+              <!-- Summary Cards -->
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                      <h6>Total Stocks</h6>
+                      <h3 class="stock-count mb-0">0</h3>
+                      <small class="text-white-50">1 Stock = 64 Oranges</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Price/Stock</h6>
+                      <h3 class="avg-price mb-0">0 BDT</h3>
+                      <small class="text-white-50">Based on market data</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                      <h6>Expected Profit</h6>
+                      <h3 class="expected-profit mb-0">0 BDT</h3>
+                      <small class="text-white-50">Per stock</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Expiry</h6>
+                      <h3 class="avg-expiry mb-0">-</h3>
+                      <small class="text-white-50">Days remaining</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stocks Table -->
+              <div class="table-responsive mb-4">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Stock</th>
+                      <th>Oranges</th>
+                      <th>Avg. Quality</th>
+                      <th>Price/Stock</th>
+                      <th>Earliest Expiry</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="stock-summary"></tbody>
+                </table>
+              </div>
+
+              <!-- Market Recommendations -->
+              <div class="market-recommendations mt-4">
+                <h6 class="mb-3">Recommended Markets</h6>
+                <div class="row g-3" id="marketCards">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- B Tier -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="tier-b-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tier-b-content">
+              <i class="fa fa-medal me-2"></i> B Tier
+              <span class="badge bg-primary ms-2 tier-count">0</span>
+            </button>
+          </h2>
+          <div id="tier-b-content" class="accordion-collapse collapse" data-bs-parent="#tierAccordion">
+            <div class="accordion-body">
+              <!-- Summary Cards -->
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                      <h6>Total Stocks</h6>
+                      <h3 class="stock-count mb-0">0</h3>
+                      <small class="text-white-50">1 Stock = 64 Oranges</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Price/Stock</h6>
+                      <h3 class="avg-price mb-0">0 BDT</h3>
+                      <small class="text-white-50">Based on market data</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                      <h6>Expected Profit</h6>
+                      <h3 class="expected-profit mb-0">0 BDT</h3>
+                      <small class="text-white-50">Per stock</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Expiry</h6>
+                      <h3 class="avg-expiry mb-0">-</h3>
+                      <small class="text-white-50">Days remaining</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stocks Table -->
+              <div class="table-responsive mb-4">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Stock</th>
+                      <th>Oranges</th>
+                      <th>Avg. Quality</th>
+                      <th>Price/Stock</th>
+                      <th>Earliest Expiry</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="stock-summary"></tbody>
+                </table>
+              </div>
+
+              <!-- Market Recommendations -->
+              <div class="market-recommendations mt-4">
+                <h6 class="mb-3">Recommended Markets</h6>
+                <div class="row g-3" id="marketCards">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- C Tier -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="tier-c-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tier-c-content">
+              <i class="fa fa-certificate me-2"></i> C Tier
+              <span class="badge bg-primary ms-2 tier-count">0</span>
+            </button>
+          </h2>
+          <div id="tier-c-content" class="accordion-collapse collapse" data-bs-parent="#tierAccordion">
+            <div class="accordion-body">
+              <!-- Summary Cards -->
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                      <h6>Total Stocks</h6>
+                      <h3 class="stock-count mb-0">0</h3>
+                      <small class="text-white-50">1 Stock = 64 Oranges</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Price/Stock</h6>
+                      <h3 class="avg-price mb-0">0 BDT</h3>
+                      <small class="text-white-50">Based on market data</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                      <h6>Expected Profit</h6>
+                      <h3 class="expected-profit mb-0">0 BDT</h3>
+                      <small class="text-white-50">Per stock</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Expiry</h6>
+                      <h3 class="avg-expiry mb-0">-</h3>
+                      <small class="text-white-50">Days remaining</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stocks Table -->
+              <div class="table-responsive mb-4">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Stock</th>
+                      <th>Oranges</th>
+                      <th>Avg. Quality</th>
+                      <th>Price/Stock</th>
+                      <th>Earliest Expiry</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="stock-summary"></tbody>
+                </table>
+              </div>
+
+              <!-- Market Recommendations -->
+              <div class="market-recommendations mt-4">
+                <h6 class="mb-3">Recommended Markets</h6>
+                <div class="row g-3" id="marketCards">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- R Tier -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="tier-r-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tier-r-content">
+              <i class="fa fa-recycle me-2"></i> R Tier
+              <span class="badge bg-primary ms-2 tier-count">0</span>
+            </button>
+          </h2>
+          <div id="tier-r-content" class="accordion-collapse collapse" data-bs-parent="#tierAccordion">
+            <div class="accordion-body">
+              <!-- Summary Cards -->
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-gradient-primary text-white">
+                    <div class="card-body text-center">
+                      <h6>Total Stocks</h6>
+                      <h3 class="stock-count mb-0">0</h3>
+                      <small class="text-white-50">1 Stock = 64 Oranges</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-success text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Price/Stock</h6>
+                      <h3 class="avg-price mb-0">0 BDT</h3>
+                      <small class="text-white-50">Based on market data</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-info text-white">
+                    <div class="card-body text-center">
+                      <h6>Expected Profit</h6>
+                      <h3 class="expected-profit mb-0">0 BDT</h3>
+                      <small class="text-white-50">Per stock</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-gradient-warning text-white">
+                    <div class="card-body text-center">
+                      <h6>Avg. Expiry</h6>
+                      <h3 class="avg-expiry mb-0">-</h3>
+                      <small class="text-white-50">Days remaining</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stocks Table -->
+              <div class="table-responsive mb-4">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Stock</th>
+                      <th>Oranges</th>
+                      <th>Avg. Quality</th>
+                      <th>Price/Stock</th>
+                      <th>Earliest Expiry</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody class="stock-summary"></tbody>
+                </table>
+              </div>
+
+              <!-- Market Recommendations -->
+              <div class="market-recommendations mt-4">
+                <h6 class="mb-3">Recommended Markets</h6>
+                <div class="row g-3" id="marketCards">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+    
+    <!-- No Batch Selected Message -->
     <div id="noBatchSelected" class="text-center py-5">
       <i class="fa fa-box fa-3x text-muted mb-3"></i>
       <h6>Select a batch to view details</h6>
@@ -84,93 +421,747 @@
   </div>
 </div>
 
-{% block scriptcontent %}
 <script>
-document.getElementById('batchSelector').addEventListener('change', async function() {
-  const batchId = this.value;
-  const batchContent = document.getElementById('batchContent');
-  const noBatchSelected = document.getElementById('noBatchSelected');
-  
-  if (!batchId) {
-    batchContent.style.display = 'none';
-    noBatchSelected.style.display = 'block';
-    return;
-  }
+console.log('Script loaded');
 
-  // Show loading state
-  Swal.fire({
-    title: 'Loading batch details...',
-    allowOutsideClick: false,
-    showConfirmButton: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
-  });
-
-  try {
-    const response = await fetch(`/api/batch/${batchId}/items`);
-    const data = await response.json();
-
-    if (data.success) {
-      // Update tier counts
-      ['s', 'a', 'b', 'c', 'r'].forEach(tier => {
-        const count = data.items.filter(item => item.tier.toLowerCase() === tier).length;
-        document.querySelector(`#tier-${tier}-tab .tier-count`).textContent = count;
-      });
-
-      // Update tier contents
-      ['s', 'a', 'b', 'c', 'r'].forEach(tier => {
-        const items = data.items.filter(item => item.tier.toLowerCase() === tier);
-        const tbody = document.getElementById(`tier-${tier}-content`);
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    
+    const batchSelector = document.getElementById('batchSelector');
+    
+    batchSelector.onchange = async function() {
+        console.log('Dropdown changed!');
+        const batchId = this.value;
         
-        if (items.length > 0) {
-          tbody.innerHTML = items.map(item => `
-            <tr>
-              <td>${item.id}</td>
-              <td>
-                <img src="${item.image_path}" alt="Item ${item.id}" class="img-thumbnail" style="height: 50px;">
-              </td>
-              <td>${(item.confidence * 100).toFixed(1)}%</td>
-              <td>$${item.price.toFixed(2)}</td>
-              <td>${new Date(item.expiry_date).toLocaleDateString()}</td>
-              <td>
-                <button class="btn btn-primary btn-sm" onclick="viewItem(${item.id})">
-                  <i class="fa fa-eye"></i>
-                </button>
-              </td>
-            </tr>
-          `).join('');
-        } else {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" class="text-center">No items in this tier</td>
-            </tr>
-          `;
-        }
-      });
+        if (!batchId) return;
 
-      batchContent.style.display = 'block';
-      noBatchSelected.style.display = 'none';
-      Swal.close();
-    } else {
-      throw new Error(data.error);
-    }
-  } catch (error) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error!',
-      text: error.message || 'Failed to load batch details',
-      customClass: {
-        confirmButton: 'btn btn-primary'
-      },
-      buttonsStyling: false
-    });
-  }
+        try {
+            const response = await fetch(`/api/batch/${batchId}/items`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('API returned error:', data.error);
+                return;
+            }
+
+            // Show batch content, hide no selection message
+            document.getElementById('noBatchSelected').style.display = 'none';
+            document.getElementById('batchContent').style.display = 'block';
+
+            // Update tier counts
+            ['S', 'A', 'B', 'C', 'R'].forEach(tier => {
+                const items = data.items.filter(item => item.tier === tier);
+                console.log(`${tier} tier items: ${items.length}`);
+                
+                // Update the badge in the accordion header
+                const badge = document.querySelector(`#tier-${tier.toLowerCase()}-header button .badge`);
+                if (badge) {
+                    badge.textContent = items.length;
+                    console.log(`Updated ${tier} tier badge to ${items.length}`);
+                } else {
+                    console.error(`Could not find badge for tier ${tier}`, 
+                        `#tier-${tier.toLowerCase()}-header button .badge`);
+                }
+
+                // Update the content section
+                const contentSection = document.querySelector(`#tier-${tier.toLowerCase()}-content`);
+                if (contentSection) {
+                    // Update stock count
+                    const stockCountEl = contentSection.querySelector('.stock-count');
+                    if (stockCountEl) {
+                        const stockCount = Math.ceil(items.length / 64);
+                        stockCountEl.textContent = stockCount;
+                        console.log(`Updated ${tier} stock count to ${stockCount}`);
+                    }
+
+                    // Update average price
+                    const avgPriceEl = contentSection.querySelector('.avg-price');
+                    if (avgPriceEl && items.length > 0) {
+                        const avgPrice = items.reduce((sum, item) => sum + item.price, 0) / items.length;
+                        avgPriceEl.textContent = `${avgPrice.toFixed(2)} BDT`;
+                        console.log(`Updated ${tier} average price to ${avgPrice.toFixed(2)}`);
+                    }
+
+                    // Update average expiry
+                    const avgExpiryEl = contentSection.querySelector('.avg-expiry');
+                    if (avgExpiryEl && items.length > 0) {
+                        const today = new Date();
+                        const avgExpiry = items.reduce((sum, item) => {
+                            const expiry = new Date(item.expiry_date);
+                            return sum + Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                        }, 0) / items.length;
+                        avgExpiryEl.textContent = `${Math.ceil(avgExpiry)} days`;
+                        console.log(`Updated ${tier} average expiry to ${Math.ceil(avgExpiry)}`);
+                    }
+
+                    // Update expected profit (placeholder calculation)
+                    const expectedProfitEl = contentSection.querySelector('.expected-profit');
+                    if (expectedProfitEl && items.length > 0) {
+                        const avgPrice = items.reduce((sum, item) => sum + item.price, 0) / items.length;
+                        const expectedProfit = avgPrice * 0.2; // 20% profit margin example
+                        expectedProfitEl.textContent = `${expectedProfit.toFixed(2)} BDT`;
+                        console.log(`Updated ${tier} expected profit to ${expectedProfit.toFixed(2)}`);
+                    }
+
+                    // Remove any existing view stock details button at bottom
+                    const oldViewButton = contentSection.querySelector('.view-stock-btn');
+                    if (oldViewButton) {
+                        oldViewButton.remove();
+                    }
+
+                    // Remove any existing view all items button
+                    const oldViewAllButton = contentSection.querySelector('[data-bs-toggle="modal"]');
+                    if (oldViewAllButton && !oldViewAllButton.closest('td')) {
+                        oldViewAllButton.remove();
+                    }
+
+                    // Update table content as before
+                    const tableBody = contentSection.querySelector('.stock-summary');
+                    if (tableBody && items.length > 0) {
+                        // Clear existing rows
+                        tableBody.innerHTML = '';
+                        
+                        // Group items into stocks (64 oranges per stock)
+                        const stocks = [];
+                        let currentStock = [];
+                        items.forEach(item => {
+                            currentStock.push(item);
+                            if (currentStock.length === 64) {
+                                stocks.push([...currentStock]);
+                                currentStock = [];
+                            }
+                        });
+                        if (currentStock.length > 0) {
+                            stocks.push(currentStock);
+                        }
+
+                        // Create rows for each stock
+                        stocks.forEach((stockItems, index) => {
+                            const avgQuality = stockItems.reduce((sum, item) => sum + item.confidence, 0) / stockItems.length;
+                            const totalPrice = stockItems.reduce((sum, item) => sum + item.price, 0);
+                            const earliestExpiry = new Date(Math.min(...stockItems.map(item => new Date(item.expiry_date))));
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>Stock ${index + 1}</td>
+                                <td>${stockItems.length}/64</td>
+                                <td>${(avgQuality * 100).toFixed(0)}%</td>
+                                <td>${totalPrice.toFixed(2)} BDT</td>
+                                <td>${earliestExpiry.toLocaleDateString()}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#stockModal"
+                                            onclick='showStockModal(${JSON.stringify(stockItems)}, "${tier}")'>
+                                        <i class="fa fa-table me-1"></i> View Items
+                                    </button>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    }
+                } else {
+                    console.error(`Could not find content section for tier ${tier}`);
+                }
+
+                // Add market recommendations
+                updateMarketRecommendations(tier, contentSection);
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
 });
 
-function viewItem(itemId) {
-  // Implement item view functionality
-  console.log('View item:', itemId);
+// Function to show stock modal
+function showStockModal(items, tier) {
+    const modalTitle = document.querySelector('#stockModalLabel');
+    modalTitle.textContent = `${tier} Tier - Stock Details`;
+
+    const modalBody = document.querySelector('#stockModal .stock-items');
+    modalBody.innerHTML = '';
+
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td>1</td>
+            <td>${(item.confidence * 100).toFixed(0)}%</td>
+            <td>${item.price.toFixed(2)} BDT</td>
+            <td>${new Date(item.expiry_date).toLocaleDateString()}</td>
+        `;
+        modalBody.appendChild(row);
+    });
+}
+
+// Add this function to handle market recommendations
+function getMarketRecommendations(tier) {
+    switch(tier) {
+        case 'S':
+            // Return exporters for S tier
+            return [
+                {
+                    name: 'Opa Food International',
+                    description: 'A leading exporter of fresh fruits from Bangladesh, specializing in quality produce for international markets.',
+                    link: 'https://www.exportgenius.in/bangladesh-exporters-of-fresh-fruits',
+                    isWebsite: true,
+                    stats: {
+                        profit: '25-30%',
+                        volume: '500+ tons/month',
+                        rating: '4.8/5'
+                    }
+                },
+                {
+                    name: 'M/S B.D Food Export Com',
+                    description: 'Exporter of various food products, including fresh fruits and vegetables.',
+                    link: 'https://hortex.org/exporters-list/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '20-25%',
+                        volume: '400+ tons/month',
+                        rating: '4.6/5'
+                    }
+                },
+                {
+                    name: 'M/S Oliva International',
+                    description: 'Exporter of fresh fruits and vegetables, maintaining quality standards for global clients.',
+                    link: 'https://hortex.org/exporters-list/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '22-28%',
+                        volume: '450+ tons/month',
+                        rating: '4.7/5'
+                    }
+                }
+            ];
+        case 'A':
+            // Return supermarkets for A tier
+            return [
+                {
+                    name: 'Agora',
+                    description: 'One of the first retail chains in Bangladesh, offering a wide range of groceries and household items.',
+                    link: 'https://www.agorabd.com/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '15-20%',
+                        volume: '200+ tons/month',
+                        rating: '4.5/5'
+                    }
+                },
+                {
+                    name: 'Meena Bazar',
+                    description: 'A leading retail chain providing fresh groceries, fruits, and vegetables across Bangladesh.',
+                    link: 'https://www.meenabazar.com.bd/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '12-18%',
+                        volume: '150+ tons/month',
+                        rating: '4.4/5'
+                    }
+                },
+                {
+                    name: 'Shwapno',
+                    description: 'The largest supermarket chain in Bangladesh, offering a wide range of products including fresh produce.',
+                    link: 'https://www.shwapno.com/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '14-19%',
+                        volume: '180+ tons/month',
+                        rating: '4.6/5'
+                    }
+                }
+            ];
+        case 'B':
+            // Return local markets for B tier
+            return [
+                {
+                    name: 'Karwan Bazar',
+                    description: 'A major wholesale market known for its fresh vegetables, fruits, and fish.',
+                    link: 'https://maps.google.com/?q=Karwan+Bazar+Dhaka+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '10-15%',
+                        volume: '100+ tons/month',
+                        rating: '4.3/5'
+                    }
+                },
+                {
+                    name: 'Shaheb Bazar',
+                    description: 'The main commercial hub of Rajshahi, offering a wide range of products from fresh produce to electronics.',
+                    link: 'https://maps.google.com/?q=Shaheb+Bazar+Rajshahi+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '8-12%',
+                        volume: '80+ tons/month',
+                        rating: '4.2/5'
+                    }
+                },
+                {
+                    name: 'Boro Bazar',
+                    description: 'The largest wholesale and retail market in Khulna, offering a variety of goods including fresh fruits and vegetables.',
+                    link: 'https://maps.google.com/?q=Boro+Bazar+Khulna+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '9-14%',
+                        volume: '90+ tons/month',
+                        rating: '4.1/5'
+                    }
+                }
+            ];
+        case 'C':
+            // Return community markets for C tier
+            return [
+                {
+                    name: 'Jatrabari Market',
+                    description: 'A prominent market in Dhaka, offering a variety of fruits and vegetables to local consumers.',
+                    link: 'https://maps.google.com/?q=Jatrabari+Market+Dhaka+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '5-10%',
+                        volume: '50+ tons/month',
+                        rating: '4.0/5'
+                    }
+                },
+                {
+                    name: 'Gulshan DCC Market',
+                    description: 'A popular market in the Gulshan area, offering groceries, clothing, and household items.',
+                    link: 'https://maps.google.com/?q=Gulshan+DCC+Market+Dhaka+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '6-11%',
+                        volume: '40+ tons/month',
+                        rating: '4.1/5'
+                    }
+                },
+                {
+                    name: 'New Market',
+                    description: 'A historic market offering a variety of goods, including fresh produce, clothing, and electronics.',
+                    link: 'https://maps.google.com/?q=New+Market+Dhaka+Bangladesh',
+                    isWebsite: false,
+                    stats: {
+                        profit: '7-12%',
+                        volume: '45+ tons/month',
+                        rating: '4.2/5'
+                    }
+                }
+            ];
+        case 'R':
+            // Return recycling/processing facilities for R tier
+            return [
+                {
+                    name: 'Bangladesh Agricultural Development Corporation (BADC)',
+                    description: 'A government organization responsible for the development of agriculture in Bangladesh.',
+                    link: 'http://www.badc.gov.bd/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '3-8%',
+                        volume: '30+ tons/month',
+                        rating: '4.0/5'
+                    }
+                },
+                {
+                    name: 'Waste Concern',
+                    description: 'An organization focusing on waste recycling and environmental improvement in Bangladesh.',
+                    link: 'http://wasteconcern.org/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '4-7%',
+                        volume: '25+ tons/month',
+                        rating: '4.1/5'
+                    }
+                },
+                {
+                    name: 'Bangladesh Chemical Industries Corporation (BCIC)',
+                    description: 'A state-owned enterprise managing the production of chemical fertilizers and other industrial products.',
+                    link: 'http://www.bcic.gov.bd/',
+                    isWebsite: true,
+                    stats: {
+                        profit: '5-9%',
+                        volume: '35+ tons/month',
+                        rating: '3.9/5'
+                    }
+                }
+            ];
+    }
+}
+
+// Update the tier content to include market recommendations
+function updateMarketRecommendations(tier, contentSection) {
+    const markets = getMarketRecommendations(tier);
+    const marketCards = contentSection.querySelector('#marketCards');
+    
+    if (marketCards) {
+        marketCards.innerHTML = markets.map(market => `
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${market.name}</h6>
+                        <p class="card-text text-muted">${market.description}</p>
+                        <div class="market-stats mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-success">
+                                    <i class="fa fa-chart-line me-1"></i>
+                                    Profit Margin: ${market.stats.profit}
+                                </small>
+                                <small class="text-info">
+                                    <i class="fa fa-box me-1"></i>
+                                    Volume: ${market.stats.volume}
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <small class="text-warning">
+                                    <i class="fa fa-star me-1"></i>
+                                    Rating: ${market.stats.rating}
+                                </small>
+                            </div>
+                        </div>
+                        <a href="${market.link}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fa ${market.isWebsite ? 'fa-globe' : 'fa-map-marker'} me-1"></i>
+                            ${market.isWebsite ? 'Visit Website' : 'View Location'}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
 }
 </script>
-{% endblock %}
+
+<style>
+/* Dark mode styles */
+.dark-mode .table {
+    color: #e1e1e1;
+    background-color: #2d2d2d;
+}
+
+.dark-mode .table thead th {
+    border-color: #404040;
+    background-color: #1a1a1a;
+}
+
+.dark-mode .table td {
+    border-color: #404040;
+}
+
+.dark-mode .card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-mode .card-body {
+    color: #e1e1e1;
+}
+
+.dark-mode .text-muted {
+    color: #b0b0b0 !important;
+}
+
+.dark-mode .accordion-button {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+.dark-mode .accordion-button:not(.collapsed) {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-mode .accordion-body {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+/* Table styles */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Button styles */
+.btn-outline-primary {
+    border-width: 1px;
+}
+
+.dark-mode .btn-outline-primary {
+    color: #7eb4ea;
+    border-color: #7eb4ea;
+}
+
+.dark-mode .btn-outline-primary:hover {
+    background-color: #7eb4ea;
+    color: #1a1a1a;
+}
+
+/* Modal styles */
+.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+.dark-mode .modal-header {
+    border-bottom-color: #404040;
+}
+
+.dark-mode .modal-footer {
+    border-top-color: #404040;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Button styles */
+.btn-outline-primary {
+    border-width: 1px;
+}
+
+.dark-mode .btn-outline-primary {
+    color: #7eb4ea;
+    border-color: #7eb4ea;
+}
+
+.dark-mode .btn-outline-primary:hover {
+    background-color: #7eb4ea;
+    color: #1a1a1a;
+}
+
+/* Modal styles */
+.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+.dark-mode .modal-header {
+    border-bottom-color: #404040;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Button and modal styles */
+.view-stock-btn {
+    margin-top: 1rem;
+}
+
+.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+.dark-mode .modal-header {
+    border-bottom-color: #404040;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Stock summary styles */
+.stock-summary {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.dark-mode .stock-summary {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.stock-metric {
+    min-width: 120px;
+}
+
+.stock-metric .text-muted {
+    font-size: 0.875rem;
+}
+
+.dark-mode .stock-metric .text-muted {
+    color: #b0b0b0 !important;
+}
+
+.view-stock-btn {
+    height: fit-content;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stock-summary {
+        flex-wrap: wrap;
+        gap: 1rem !important;
+    }
+    
+    .stock-metric {
+        min-width: calc(50% - 0.5rem);
+    }
+    
+    .view-stock-btn {
+        width: 100%;
+        margin-top: 1rem;
+    }
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.dark-mode .table {
+    color: #e1e1e1;
+}
+
+.dark-mode .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Add these styles */
+.market-recommendations .card {
+    transition: transform 0.2s;
+}
+
+.market-recommendations .card:hover {
+    transform: translateY(-5px);
+}
+
+.dark-mode .market-recommendations .card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-mode .market-recommendations .card-text {
+    color: #b0b0b0 !important;
+}
+
+.dark-mode .btn-outline-primary {
+    color: #7eb4ea;
+    border-color: #7eb4ea;
+}
+
+.dark-mode .btn-outline-primary:hover {
+    background-color: #7eb4ea;
+    color: #1a1a1a;
+}
+
+/* Add gradient backgrounds */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4099ff, #73b4ff);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #2ed8b6, #59e0c5);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, #4099ff, #73b4ff);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #FFB64D, #ffcb80);
+}
+
+/* Card hover effects */
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Dark mode adjustments */
+.dark-mode .card {
+    background-color: #2d2d2d;
+}
+
+.dark-mode .bg-gradient-primary,
+.dark-mode .bg-gradient-success,
+.dark-mode .bg-gradient-info,
+.dark-mode .bg-gradient-warning {
+    opacity: 0.9;
+}
+
+.market-stats small {
+    font-size: 0.85rem;
+}
+
+.dark-mode .market-stats small {
+    opacity: 0.9;
+}
+</style>
+
+<!-- Add modal container -->
+<div class="modal fade bd-example-modal-xl" id="stockModal" tabindex="-1" role="dialog" aria-labelledby="stockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="stockModalLabel">Stock Details</h4>
+                <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body dark-modal">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Stock ID</th>
+                                <th>Oranges</th>
+                                <th>Quality</th>
+                                <th>Expiry Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="stock-items"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

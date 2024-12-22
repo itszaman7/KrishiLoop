@@ -134,7 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
         confidenceValue.textContent = this.value;
     });
 
-    // Add detection button handler
+    // Add this at the top of your script, outside any function
+    let lastDetectionResult = null;
+
+    // Modify your detection button handler
     runDetectionBtn.addEventListener('click', async function() {
         try {
             const batchId = batchSelector.value;
@@ -169,6 +172,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 
                 if (result.success) {
+                    // Store the result for later use
+                    lastDetectionResult = result;
+                    
                     // Calculate combined totals and merge data
                     const combinedAnalysis = {
                         total_count: result.fresh_analysis.total_count + result.bad_analysis.total_count,
@@ -338,10 +344,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Add this right after the Combined Analysis Results card -->
+                                    <div class="text-center mt-4">
+                                        <button class="btn btn-success btn-lg" id="saveResults">
+                                            <i class="fa-solid fa-save me-2"></i>Save Results to Batch
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
+
+                    // Show the save button
+                    document.getElementById('saveResults').style.display = 'block';
                 } else {
                     throw new Error(result.error || 'Failed to process image');
                 }
@@ -621,6 +637,96 @@ document.addEventListener('DOMContentLoaded', function() {
             // Rest of your code...
         });
     });
+
+    // Add this after your existing detection handler
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'saveResults') {
+            saveDetectionResults();
+        }
+    });
+
+    // Update the save function to use lastDetectionResult
+    async function saveDetectionResults() {
+        try {
+            const batchId = document.getElementById('batchSelector').value;
+            
+            if (!batchId) {
+                throw new Error('No batch selected');
+            }
+
+            if (!lastDetectionResult) {
+                throw new Error('No detection results to save');
+            }
+
+            // Show loading state
+            Swal.fire({
+                title: 'Saving Results',
+                html: 'Saving detection results to batch...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/save-detection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    batch_id: batchId,
+                    fresh_count: lastDetectionResult.fresh_analysis.total_count,
+                    bad_count: lastDetectionResult.bad_analysis.total_count,
+                    fresh_analysis: lastDetectionResult.fresh_analysis,
+                    bad_analysis: lastDetectionResult.bad_analysis,
+                    fresh_detections: lastDetectionResult.fresh_detections,
+                    bad_detections: lastDetectionResult.bad_detections
+                })
+            });
+
+            const saveResult = await response.json();
+
+            if (saveResult.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Results saved successfully to batch',
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'btn btn-primary'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Disable save button and update its appearance
+                        const saveButton = document.getElementById('saveResults');
+                        saveButton.disabled = true;
+                        saveButton.innerHTML = `
+                            <i class="fa-solid fa-check me-2"></i>Results Saved
+                        `;
+                    }
+                });
+            } else {
+                throw new Error(saveResult.error || 'Failed to save results');
+            }
+
+        } catch (error) {
+            console.error('Error saving results:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: error.message || 'Failed to save results',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-primary'
+                }
+            });
+        }
+    }
+
+    // Add click handler for save button
+    document.getElementById('saveResults').addEventListener('click', saveDetectionResults);
 });
 </script>
 {% endblock %}

@@ -6,7 +6,7 @@
 <div class="container-fluid">
   <div class="row">
     <!-- Create New Batch Card -->
-    <div class="col-sm-12 col-xl-4">
+    <div class="col-12 mb-4">
       <div class="card">
         <div class="card-header">
           <h5>{{ breadcrumb.parent }}</h5>
@@ -42,7 +42,7 @@
     </div>
 
     <!-- Batch Tabs -->
-    <div class="col-sm-12 col-xl-8">
+    <div class="col-12">
       {% include 'pages/batch/BatchTabs.html' %}
     </div>
   </div>
@@ -168,6 +168,32 @@
 
 .btn i {
     font-size: 1rem;
+}
+
+/* Add spacing between cards */
+.card {
+    margin-bottom: 1.5rem;
+}
+
+/* Make tabs more prominent */
+.nav-tabs {
+    border-bottom: 2px solid var(--theme-deafult);
+}
+
+.nav-tabs .nav-link {
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    border-color: var(--theme-deafult);
+    border-bottom: 2px solid #fff;
+    margin-bottom: -2px;
+}
+
+/* Add some spacing in the card body */
+.card-body {
+    padding: 1.5rem;
 }
 </style>
 {% endblock %}
