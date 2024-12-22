@@ -148,3 +148,16 @@ class Sale(db.Model):
         self.price_per_unit = price_per_unit
         self.total_price = price_per_unit * quantity
         self.tier = tier
+
+class Detection(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fresh_count = db.Column(db.Integer, default=0)
+    bad_count = db.Column(db.Integer, default=0)
+    fresh_analysis = db.Column(db.JSON)
+    bad_analysis = db.Column(db.JSON)
+    fresh_detections = db.Column(db.JSON)
+    bad_detections = db.Column(db.JSON)
+
+    batch = db.relationship('Batch', backref=db.backref('detections', lazy=True))

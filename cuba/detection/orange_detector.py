@@ -24,6 +24,10 @@ class OrangeDetector:
 
     def run_detection(self, image, model, conf_threshold, label_rename=None):
         """Run detection with tier classification and price prediction"""
+        print(f"\n=== Running Detection ===")
+        print(f"Model: {'Bad Orange' if label_rename else 'Fresh Orange'}")
+        print(f"Confidence Threshold: {conf_threshold}")
+        
         if model is None:
             raise Exception("Model not loaded.")
 
@@ -34,6 +38,8 @@ class OrangeDetector:
         results = model(frame, conf=conf_threshold)
         detections = []
 
+        print(f"\nDetections found: {len(results[0].boxes)}")
+        
         # Plot results (will be in BGR)
         annotated_frame = results[0].plot(labels=False)  # Disable default labels
         # Convert back to RGB for display
@@ -128,24 +134,37 @@ class OrangeDetector:
     def process_image(self, image_file, conf_threshold=0.25):
         """Process image through both models and return results"""
         try:
-            image = Image.open(image_file)
+            print("\n====== Starting Image Processing ======")
+            print(f"Confidence Threshold: {conf_threshold}")
             
+            image = Image.open(image_file)
+            print("Image loaded successfully")
+            
+            print("\n=== Processing Fresh Oranges ===")
             fresh_detections, fresh_img = self.run_detection(
                 image, 
                 self.fresh_model, 
                 conf_threshold
             )
+            print(f"Fresh detections found: {len(fresh_detections)}")
             
+            print("\n=== Processing Bad Oranges ===")
             bad_detections, bad_img = self.run_detection(
                 image, 
                 self.bad_model, 
                 conf_threshold, 
                 label_rename=True
             )
+            print(f"Bad detections found: {len(bad_detections)}")
             
-            # Get comprehensive analysis for both fresh and bad detections
+            # Get comprehensive analysis
+            print("\n=== Analyzing Fresh Detections ===")
             fresh_analysis = self.price_predictor.analyze_detections(fresh_detections)
+            
+            print("\n=== Analyzing Bad Detections ===")
             bad_analysis = self.price_predictor.analyze_detections(bad_detections)
+            
+            print("\n====== Image Processing Complete ======")
             
             return {
                 'success': True,
@@ -158,7 +177,7 @@ class OrangeDetector:
             }
             
         except Exception as e:
-            print(f"Error processing image: {e}")
+            print(f"\nERROR in process_image: {e}")
             return {
                 'success': False,
                 'error': str(e)

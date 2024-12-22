@@ -15,11 +15,6 @@ class ProducePricePredictor:
         prices = np.array([400, 350, 300, 250, 200])
         
         # Training data for shelf life (days)
-        # S tier: 6 weeks (42 days) - Premium storage & handling
-        # A tier: 4 weeks (28 days) - Refrigerated storage
-        # B tier: 3 weeks (21 days) - Standard storage
-        # C tier: 2 weeks (14 days) - Limited storage
-        # R tier: 1 week (7 days) - Immediate processing needed
         shelf_life = np.array([42, 28, 21, 14, 7])
         
         # Train models
@@ -28,52 +23,118 @@ class ProducePricePredictor:
         
         self.shelf_life_model = LinearRegression()
         self.shelf_life_model.fit(confidence_scores, shelf_life)
+        
+        print("\n=== Model Training Results ===")
+        print(f"Price Model Coefficients: {self.price_model.coef_[0]:.2f}")
+        print(f"Price Model Intercept: {self.price_model.intercept_:.2f}")
+        print(f"Shelf Life Model Coefficients: {self.shelf_life_model.coef_[0]:.2f}")
+        print(f"Shelf Life Model Intercept: {self.shelf_life_model.intercept_:.2f}\n")
 
     def classify_tier(self, conf):
-        """
-        Classify produce into quality tiers based on confidence score
-        
-        Args:
-            conf (float): Confidence score from the detection model
-            
-        Returns:
-            str: Quality tier (S, A, B, C, or R)
-        """
+        """Classify produce into quality tiers based on confidence score"""
+        tier = None
         if conf >= 0.9:
-            return 'S'  # Export Quality (6 weeks shelf life)
+            tier = 'S'
         elif conf >= 0.75:
-            return 'A'  # Supermarket Quality (4 weeks shelf life)
+            tier = 'A'
         elif conf >= 0.6:
-            return 'B'  # Local Market Quality (3 weeks shelf life)
+            tier = 'B'
         elif conf >= 0.4:
-            return 'C'  # Community Market Quality (2 weeks shelf life)
+            tier = 'C'
         else:
-            return 'R'  # Recycling Grade (1 week or less)
+            tier = 'R'
+            
+        print(f"\n=== Tier Classification ===")
+        print(f"Confidence Score: {conf:.3f}")
+        print(f"Assigned Tier: {tier}")
+        return tier
 
     def predict_price(self, confidence):
-        """
-        Predict price based on confidence score using linear regression
-        
-        Args:
-            confidence (float): Confidence score from the detection model
-            
-        Returns:
-            float: Predicted price in BDT
-        """
-        return float(self.price_model.predict([[confidence]])[0])
+        """Predict price based on confidence score"""
+        price = float(self.price_model.predict([[confidence]])[0])
+        print(f"\n=== Price Prediction ===")
+        print(f"Confidence Score: {confidence:.3f}")
+        print(f"Predicted Price: {price:.2f} BDT")
+        return price
 
     def predict_expiry(self, confidence):
-        """
-        Predict expiry date based on confidence score and storage conditions
-        
-        Args:
-            confidence (float): Confidence score from the detection model
-            
-        Returns:
-            datetime: Predicted expiry date
-        """
+        """Predict expiry date based on confidence score"""
         shelf_life = int(self.shelf_life_model.predict([[confidence]])[0])
-        return datetime.now() + timedelta(days=shelf_life)
+        expiry_date = datetime.now() + timedelta(days=shelf_life)
+        print(f"\n=== Expiry Prediction ===")
+        print(f"Confidence Score: {confidence:.3f}")
+        print(f"Predicted Shelf Life: {shelf_life} days")
+        print(f"Expiry Date: {expiry_date.strftime('%Y-%m-%d')}")
+        return expiry_date
+
+    def analyze_detections(self, detections):
+        """Analyze detections and provide comprehensive statistics"""
+        print("\n=== Detection Analysis ===")
+        print(f"Total Detections: {len(detections)}")
+        
+        if not detections:
+            print("No detections to analyze")
+            return {
+                'total_count': 0,
+                'tier_distribution': {},
+                'price_analysis': {'average_price': 0, 'total_value': 0, 'price_range': {'min': 0, 'max': 0}},
+                'expiry_analysis': {'earliest': None, 'latest': None},
+                'market_recommendations': []
+            }
+
+        # Initialize analysis
+        tier_distribution = {}
+        prices = []
+        expiry_dates = []
+        market_recommendations = set()
+
+        # Process each detection
+        for det in detections:
+            confidence = det['confidence']
+            tier = det['tier']
+            price = det['predicted_price']
+            expiry = datetime.strptime(det['expiry_date'], '%Y-%m-%d')
+            
+            tier_distribution[tier] = tier_distribution.get(tier, 0) + 1
+            prices.append(price)
+            expiry_dates.append(expiry)
+            market_recommendations.add(self.get_tier_description(tier))
+
+        # Calculate statistics
+        avg_price = np.mean(prices)
+        total_value = sum(prices)
+        price_range = {'min': min(prices), 'max': max(prices)}
+        
+        print("\nTier Distribution:")
+        for tier, count in tier_distribution.items():
+            print(f"Tier {tier}: {count} items")
+            
+        print("\nPrice Analysis:")
+        print(f"Average Price: {avg_price:.2f} BDT")
+        print(f"Total Value: {total_value:.2f} BDT")
+        print(f"Price Range: {price_range['min']:.2f} - {price_range['max']:.2f} BDT")
+        
+        print("\nExpiry Analysis:")
+        print(f"Earliest: {min(expiry_dates).strftime('%Y-%m-%d')}")
+        print(f"Latest: {max(expiry_dates).strftime('%Y-%m-%d')}")
+
+        return {
+            'total_count': len(detections),
+            'tier_distribution': tier_distribution,
+            'price_analysis': {
+                'average_price': round(avg_price, 2),
+                'total_value': round(total_value, 2),
+                'price_range': {
+                    'min': round(price_range['min'], 2),
+                    'max': round(price_range['max'], 2)
+                }
+            },
+            'expiry_analysis': {
+                'earliest': min(expiry_dates).strftime('%Y-%m-%d'),
+                'latest': max(expiry_dates).strftime('%Y-%m-%d')
+            },
+            'market_recommendations': sorted(list(market_recommendations))
+        }
 
     def get_tier_description(self, tier):
         """
@@ -98,77 +159,3 @@ class ProducePricePredictor:
                 'Process within 1 week for optimal resource recovery'
         }
         return descriptions.get(tier, 'Unknown Tier')
-
-    def analyze_detections(self, detections):
-        """
-        Analyze detections and provide comprehensive statistics
-        
-        Args:
-            detections (list): List of detection objects with confidence scores
-            
-        Returns:
-            dict: Analysis results including tier distribution, prices, and market recommendations
-        """
-        if not detections:
-            return {
-                'total_count': 0,
-                'tier_distribution': {},
-                'price_analysis': {
-                    'average_price': 0,
-                    'total_value': 0,
-                    'price_range': {'min': 0, 'max': 0}
-                },
-                'expiry_analysis': {
-                    'earliest': None,
-                    'latest': None
-                },
-                'market_recommendations': []
-            }
-
-        # Initialize analysis
-        tier_distribution = {}
-        prices = []
-        expiry_dates = []
-        market_recommendations = set()
-
-        # Process each detection
-        for det in detections:
-            confidence = det['confidence']
-            tier = self.classify_tier(confidence)
-            price = self.predict_price(confidence)
-            expiry = self.predict_expiry(confidence)
-            
-            # Update distributions
-            tier_distribution[tier] = tier_distribution.get(tier, 0) + 1
-            prices.append(price)
-            expiry_dates.append(expiry)
-            
-            # Add market recommendation
-            market_recommendations.add(self.get_tier_description(tier))
-
-        # Calculate statistics
-        avg_price = np.mean(prices)
-        total_value = sum(prices)
-        price_range = {'min': min(prices), 'max': max(prices)}
-        
-        # Format expiry dates
-        earliest_expiry = min(expiry_dates)
-        latest_expiry = max(expiry_dates)
-
-        return {
-            'total_count': len(detections),
-            'tier_distribution': tier_distribution,
-            'price_analysis': {
-                'average_price': round(avg_price, 2),
-                'total_value': round(total_value, 2),
-                'price_range': {
-                    'min': round(price_range['min'], 2),
-                    'max': round(price_range['max'], 2)
-                }
-            },
-            'expiry_analysis': {
-                'earliest': earliest_expiry.strftime('%Y-%m-%d'),
-                'latest': latest_expiry.strftime('%Y-%m-%d')
-            },
-            'market_recommendations': sorted(list(market_recommendations))
-        }

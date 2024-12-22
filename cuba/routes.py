@@ -9,7 +9,7 @@ from PIL import Image
 import base64
 import io
 from cuba.detection.orange_detector import OrangeDetector
-from cuba.models import Batch, Stock, Produce, Sale
+from cuba.models import Batch, Stock, Produce, Sale, Detection
 from datetime import datetime
 import builtins  # For getattr function
 import time
@@ -152,51 +152,34 @@ def image_detector():
 @main.route('/detect-oranges', methods=['POST'])
 def detect_oranges():
     try:
+      
         if 'image' not in request.files:
             return jsonify({
                 'success': False,
                 'error': 'No image file provided'
             })
 
-        batch_id = request.form.get('batch_id')
-        if not batch_id:
-            return jsonify({
-                'success': False,
-                'error': 'No batch selected'
-            })
-
-        # Get the image file
         image_file = request.files['image']
+        batch_id = request.form.get('batch_id')
+        conf_threshold = float(request.form.get('confidence_threshold', 0.25))
+
+        # Process the image
+        results = orange_detector.process_image(image_file, conf_threshold)
         
-        # Process the image using OrangeDetector
-        results = orange_detector.process_image(image_file)
-        
+        # Debug print
+        print("Detection results:", {
+            'success': results['success'],
+            'has_fresh_image': 'fresh_image' in results,
+            'has_bad_image': 'bad_image' in results
+        })
+
         if not results['success']:
             return jsonify({
                 'success': False,
                 'error': results['error']
             })
 
-        # Calculate average confidence for fresh and bad detections
-        fresh_confidence = 0
-        if results['fresh_detections']:
-            fresh_confidence = sum(d['confidence'] for d in results['fresh_detections']) / len(results['fresh_detections'])
-
-        bad_confidence = 0
-        if results['bad_detections']:
-            bad_confidence = sum(d['confidence'] for d in results['bad_detections']) / len(results['bad_detections'])
-
-        return jsonify({
-            'success': True,
-            'fresh_image': results['fresh_image'],
-            'fresh_count': len(results['fresh_detections']),
-            'fresh_confidence': round(fresh_confidence * 100, 2),
-            'fresh_analysis': results['fresh_analysis'],
-            'bad_image': results['bad_image'],
-            'bad_count': len(results['bad_detections']),
-            'bad_confidence': round(bad_confidence * 100, 2),
-            'bad_analysis': results['bad_analysis']
-        })
+        return jsonify(results)
 
     except Exception as e:
         print(f"Error in detect_oranges: {str(e)}")
@@ -277,6 +260,94 @@ def get_batch_items(batch_id):
             } for item in items]
         })
     except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@main.route('/save-detection-results', methods=['POST'])
+def save_detection_results():
+    try:
+        print("Received save request")
+        data = request.json
+        print("Request data:", data)
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data received'
+            })
+
+        batch_id = data.get('batch_id')
+        if not batch_id:
+            return jsonify({
+                'success': False,
+                'error': 'No batch selected'
+            })
+
+        # Get the batch
+        batch = Batch.query.get(batch_id)
+        if not batch:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid batch ID: {batch_id}'
+            })
+
+        # Create Produce items from detections
+        try:
+            # Process fresh detections
+            for detection in data['fresh_detections']:
+                produce = Produce(
+                    batch_id=batch_id,
+                    confidence=detection['confidence'],
+                    tier=detection['tier'],
+                    price=detection['predicted_price'],
+                    expiry_date=datetime.strptime(detection['expiry_date'], '%Y-%m-%d'),
+                    market_recommendation=detection['market_recommendation'],
+                    x1=detection['coordinates'][0],
+                    y1=detection['coordinates'][1],
+                    x2=detection['coordinates'][2],
+                    y2=detection['coordinates'][3]
+                )
+                db.session.add(produce)
+
+            # Process bad detections
+            for detection in data['bad_detections']:
+                produce = Produce(
+                    batch_id=batch_id,
+                    confidence=detection['confidence'],
+                    tier=detection['tier'],
+                    price=detection['predicted_price'],
+                    expiry_date=datetime.strptime(detection['expiry_date'], '%Y-%m-%d'),
+                    market_recommendation=detection['market_recommendation'],
+                    x1=detection['coordinates'][0],
+                    y1=detection['coordinates'][1],
+                    x2=detection['coordinates'][2],
+                    y2=detection['coordinates'][3]
+                )
+                db.session.add(produce)
+
+            # Update batch analysis
+            batch.update_analysis()
+            
+            db.session.commit()
+            print("Results saved successfully to batch")
+
+            return jsonify({
+                'success': True,
+                'message': 'Results saved successfully'
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Database error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Database error: {str(e)}'
+            })
+
+    except Exception as e:
+        print(f"Error in save_detection_results: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
