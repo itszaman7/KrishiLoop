@@ -1,0 +1,752 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Input Selection Card -->
+    <div class="col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>{{ breadcrumb.parent }}</h5>
+          <span>Select your input method</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <!-- Camera Input Option -->
+            <div class="col-md-4">
+              <div class="card-wrapper border rounded-3 h-100">
+                <div class="row g-1">
+                  <div class="col-12 text-center p-3">
+                    <i class="fa-solid fa-camera fa-2x mb-3"></i>
+                    <h6>Camera Capture</h6>
+                    <p>Use connected webcam or camera</p>
+                    <button class="btn btn-primary" id="startCamera">Start Camera</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Screen Capture Option -->
+            <div class="col-md-4">
+              <div class="card-wrapper border rounded-3 h-100">
+                <div class="row g-1">
+                  <div class="col-12 text-center p-3">
+                    <i class="fa-solid fa-desktop fa-2x mb-3"></i>
+                    <h6>Screen Capture</h6>
+                    <p>Share and capture your screen</p>
+                    <button class="btn btn-primary" id="startScreen">Share Screen</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- File Upload Option -->
+            <div class="col-md-4">
+              <div class="card-wrapper border rounded-3 h-100">
+                <div class="row g-1">
+                  <div class="col-12 text-center p-3">
+                    <i class="fa-solid fa-upload fa-2x mb-3"></i>
+                    <h6>Upload Image</h6>
+                    <p>Upload existing image file</p>
+                    <input type="file" class="d-none" id="fileInput" accept="image/*">
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capture Interface Card (Initially Hidden) -->
+    <div class="col-sm-12 mt-4" id="captureInterface" style="display: none;">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5>Capture Interface</h5>
+          <button class="btn btn-danger btn-sm" id="closeCapture">
+            <i class="fa-solid fa-times me-2"></i>Close
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-12">
+              <!-- Stream Preview -->
+              <div class="bg-dark rounded mb-3">
+                <video id="preview" autoplay muted class="w-100" style="max-height: 60vh; object-fit: contain;"></video>
+              </div>
+              <!-- Device Selection -->
+              <div class="mb-3">
+                <select class="form-select" id="deviceSelect">
+                  <option value="">Loading devices...</option>
+                </select>
+              </div>
+              <!-- Controls -->
+              <div class="d-flex justify-content-between">
+                <button class="btn btn-primary" id="captureImage">
+                  <i class="fa-solid fa-camera me-2"></i>Take Screenshot
+                </button>
+                <button class="btn btn-danger" id="stopCapture">
+                  <i class="fa-solid fa-stop me-2"></i>Stop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview Card (Initially Hidden) -->
+    <div class="col-sm-12 mt-4" id="imagePreview" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <h5>Captured Images</h5>
+        </div>
+        <div class="card-body">
+          <div class="row" id="previewGallery">
+            <!-- Images will be added here dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add this button after the image preview card -->
+    <div class="col-sm-12 mt-4" id="processButtonContainer" style="display: none;">
+      <div class="card">
+        <div class="card-body text-center">
+          <button class="btn btn-primary" id="processImages">
+            <i class="fa-solid fa-microscope me-2"></i>Process Images with AI
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add this div for loading ImageDetector results -->
+    <div id="detectionResultsContainer"></div>
+
+    <!-- Detection Results Card (Initially Hidden) -->
+    <div class="col-sm-12 mt-4" id="detectionResults" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <h5>Orange Detection Results</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h6>Fresh Orange Detection</h6>
+                </div>
+                <div class="card-body">
+                  <img id="freshResult" class="img-fluid" src="" alt="Fresh orange detection">
+                  <div id="freshStats" class="mt-3"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h6>Bad Orange Detection</h6>
+                </div>
+                <div class="card-body">
+                  <img id="badResult" class="img-fluid" src="" alt="Bad orange detection">
+                  <div id="badStats" class="mt-3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+  let mediaStream = null;
+  const captureInterface = document.getElementById('captureInterface');
+  const imagePreview = document.getElementById('imagePreview');
+  const previewGallery = document.getElementById('previewGallery');
+  const detectionResults = document.getElementById('detectionResults');
+  const processButtonContainer = document.getElementById('processButtonContainer');
+  const detectionResultsContainer = document.getElementById('detectionResultsContainer');
+  let uploadedImages = [];
+
+  // Device selection and stream handling
+  async function getDevices() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    const select = document.getElementById('deviceSelect');
+    select.innerHTML = '';
+    videoDevices.forEach(device => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || `Camera ${select.length + 1}`;
+      select.appendChild(option);
+    });
+  }
+
+  // Start camera stream
+  document.getElementById('startCamera').addEventListener('click', async () => {
+    try {
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      document.getElementById('preview').srcObject = mediaStream;
+      await getDevices();
+      captureInterface.style.display = 'block';
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      Swal.fire({
+        title: "Error!",
+        text: "Could not access camera",
+        icon: "error",
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        }
+      });
+    }
+  });
+
+  // Start screen capture
+  document.getElementById('startScreen').addEventListener('click', async () => {
+    try {
+      mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true
+      });
+      document.getElementById('preview').srcObject = mediaStream;
+      captureInterface.style.display = 'block';
+    } catch (err) {
+      console.error('Error sharing screen:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Screen Share Error',
+        text: 'Could not share screen',
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        },
+        buttonsStyling: false
+      });
+    }
+  });
+
+  // Capture image
+  document.getElementById('captureImage').addEventListener('click', () => {
+    const video = document.getElementById('preview');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(blob => {
+      const formData = new FormData();
+      const timestamp = new Date().getTime();
+      const filename = `capture_${timestamp}.jpg`;
+      formData.append('image', blob, filename);
+      
+      fetch('/upload-image', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Add to gallery
+          const col = document.createElement('div');
+          col.className = 'col-sm-6 col-md-4 col-xl-3 mb-3';
+          col.innerHTML = `
+            <div class="card">
+              <img src="/static/uploads/${data.filename}" class="card-img-top" alt="Captured image">
+              <div class="card-body">
+                <h6 class="card-title">${data.filename}</h6>
+                <p class="card-text">
+                  <small class="text-muted">
+                    Captured: ${new Date().toLocaleString()}
+                  </small>
+                </p>
+              </div>
+            </div>
+          `;
+          previewGallery.insertBefore(col, previewGallery.firstChild);
+          imagePreview.style.display = 'block';
+          
+          // Store image for processing
+          addImageToGallery(data.filename, blob);
+        }
+      });
+    }, 'image/jpeg');
+  });
+
+  // Stop capture and hide interface
+  function stopCapture() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      document.getElementById('preview').srcObject = null;
+    }
+    captureInterface.style.display = 'none';
+  }
+
+  document.getElementById('stopCapture').addEventListener('click', stopCapture);
+  document.getElementById('closeCapture').addEventListener('click', stopCapture);
+
+  // Device selection change
+  document.getElementById('deviceSelect').addEventListener('change', async (e) => {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+    }
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: e.target.value }
+      });
+      document.getElementById('preview').srcObject = mediaStream;
+    } catch (err) {
+      console.error('Error switching device:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Device Error',
+        text: 'Could not switch device',
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        },
+        buttonsStyling: false
+      });
+    }
+  });
+
+  // File upload handling
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      fetch('/upload-image', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Add to gallery
+          const col = document.createElement('div');
+          col.className = 'col-sm-6 col-md-4 col-xl-3 mb-3';
+          col.innerHTML = `
+            <div class="card">
+              <img src="/static/uploads/${data.filename}" class="card-img-top" alt="Uploaded image">
+              <div class="card-body">
+                <h6 class="card-title">${data.filename}</h6>
+                <p class="card-text">
+                  <small class="text-muted">
+                    Uploaded: ${new Date().toLocaleString()}
+                  </small>
+                </p>
+              </div>
+            </div>
+          `;
+          previewGallery.insertBefore(col, previewGallery.firstChild);
+          imagePreview.style.display = 'block';
+          
+          // Store image for processing
+          addImageToGallery(data.filename, file);
+        }
+      });
+    }
+  });
+
+  // Update the processImage function calls to show results
+  async function processImage(imageData) {
+    try {
+        const formData = new FormData();
+        formData.append('image', imageData);
+        
+        const response = await fetch('/detect-oranges', {
+            method: 'POST',
+            body: formData
+        });
+        console.log(response,"response")
+        const result = await response.json();
+        
+        if (result.success) {
+            // Display fresh orange results
+            document.getElementById('freshResult').src = result.fresh_image;
+            document.getElementById('freshStats').innerHTML = `
+                <h6>Fresh Oranges Detected:</h6>
+                <p>Count: ${result.fresh_count}</p>
+                <p>Confidence: ${result.fresh_confidence}%</p>
+            `;
+            
+            // Display bad orange results
+            document.getElementById('badResult').src = result.bad_image;
+            document.getElementById('badStats').innerHTML = `
+                <h6>Bad Oranges Detected:</h6>
+                <p>Count: ${result.bad_count}</p>
+                <p>Confidence: ${result.bad_confidence}%</p>
+            `;
+
+            // Show the detection results card
+            detectionResults.style.display = 'block';
+        } else {
+            Swal.fire({
+                title: "Error!",
+                text: result.error || "Failed to process image",
+                icon: "error",
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-primary'
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error processing image:', error);
+        Swal.fire({
+            title: "Error!",
+            text: "Failed to process image",
+            icon: "error",
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'btn btn-primary'
+            }
+        });
+    }
+  }
+
+  // Update your image upload/capture success handlers to store image info
+  function addImageToGallery(filename, imageBlob) {
+    console.log("Adding image to gallery:", filename);
+    
+    // Initialize uploadedImages if it doesn't exist
+    if (!window.uploadedImages) {
+        window.uploadedImages = [];
+    }
+    
+    // Store image data
+    window.uploadedImages.push({ filename, blob: imageBlob });
+    console.log("Current uploaded images:", window.uploadedImages);
+    
+    // Add image preview
+    const col = document.createElement('div');
+    col.className = 'col-sm-6 col-md-4 col-xl-3 mb-3';
+    col.innerHTML = `
+        <div class="card">
+            <img src="/static/uploads/${filename}" class="card-img-top" alt="Uploaded image">
+            <div class="card-body">
+                <h6 class="card-title">${filename}</h6>
+                <p class="card-text">
+                    <small class="text-muted">
+                        Uploaded: ${new Date().toLocaleString()}
+                    </small>
+                </p>
+            </div>
+        </div>
+    `;
+    previewGallery.insertBefore(col, previewGallery.firstChild);
+    imagePreview.style.display = 'block';
+
+    // Show ImageDetector
+    if (!document.getElementById('detectionContainer')) {
+        const detectionContainer = document.createElement('div');
+        detectionContainer.id = 'detectionContainer';
+        document.querySelector('.container-fluid').appendChild(detectionContainer);
+        
+        // Load ImageDetector content
+        fetch('/image-detector')
+            .then(response => response.text())
+            .then(html => {
+                detectionContainer.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading detector:', error);
+            });
+    }
+  }
+
+  // Add click handler for process button
+  document.getElementById('processImages').addEventListener('click', async () => {
+    try {
+      // Show loading state
+      Swal.fire({
+        title: 'Processing Images',
+        html: 'Running AI detection on your images...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Load ImageDetector view
+      const response = await fetch('/image-detector?images=' + uploadedImages.map(img => img.filename).join(','));
+      const html = await response.text();
+      
+      // Insert the ImageDetector HTML
+      detectionResultsContainer.innerHTML = html;
+      
+      // Close loading dialog
+      Swal.close();
+
+      // Scroll to results
+      detectionResultsContainer.scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+      console.error('Error loading detector:', error);
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to load image detector",
+        icon: "error",
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        }
+      });
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    // Check if the clicked element is the run detection button
+    if (e.target && e.target.id === 'runDetection') {
+        console.log("Run Detection clicked");
+        handleDetection();
+    }
+  });
+
+  // Separate function to handle the detection process
+  async function handleDetection() {
+    try {
+        const confidenceSlider = document.getElementById('confidenceThreshold');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        console.log("Starting detection process");
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Processing Images',
+            html: 'Running AI detection on your images...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Get uploaded images
+        if (!window.uploadedImages || window.uploadedImages.length === 0) {
+            throw new Error('No images available for processing');
+        }
+
+        // Get current confidence threshold
+        const confidenceThreshold = confidenceSlider.value;
+        console.log('Using confidence threshold:', confidenceThreshold);
+
+        // Process each image
+        for (const imageData of window.uploadedImages) {
+            console.log("Processing image:", imageData);
+            
+            const formData = new FormData();
+            formData.append('image', imageData.blob);
+            formData.append('confidence', confidenceThreshold);
+            
+            const response = await fetch('/detect-oranges', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            console.log("Detection result:", result);
+            
+            if (result.success) {
+                // Display fresh orange results
+                document.getElementById('freshResult').src = result.fresh_image;
+                const freshDetections = document.getElementById('freshDetections');
+                freshDetections.innerHTML = result.fresh_detections.map(det => 
+                    `<div class="alert alert-success">
+                        Confidence: ${(det.confidence * 100).toFixed(2)}%
+                    </div>`
+                ).join('');
+                
+                // Display bad orange results
+                document.getElementById('badResult').src = result.bad_image;
+                const badDetections = document.getElementById('badDetections');
+                badDetections.innerHTML = result.bad_detections.map(det => 
+                    `<div class="alert alert-danger">
+                        Confidence: ${(det.confidence * 100).toFixed(2)}%
+                    </div>`
+                ).join('');
+
+                // Show results container
+                if (resultsContainer) {
+                    resultsContainer.style.display = 'block';
+                }
+            } else {
+                throw new Error(result.error || 'Failed to process image');
+            }
+        }
+
+        // Close loading dialog
+        Swal.close();
+
+    } catch (error) {
+        console.error('Error processing images:', error);
+        Swal.fire({
+            title: "Error!",
+            text: error.message || "Failed to process images",
+            icon: "error",
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'btn btn-primary'
+            }
+        });
+    }
+  }
+</script>
+{% endblock %}
+
+{% block css %}
+<style>
+/* Reset modal positioning */
+.modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 800px;
+    position: relative;
+}
+
+/* Fix modal stacking and scrolling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999 !important; /* Increased z-index */
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+}
+
+/* Ensure backdrop is behind modal but above other content */
+.modal-backdrop {
+    z-index: 9998 !important; /* Just below modal */
+}
+
+/* Fix modal content overflow */
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-height: calc(100vh - 3.5rem);
+    margin: auto;
+}
+
+/* Ensure video container stays within bounds */
+.modal-body {
+    position: relative;
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
+}
+
+/* Fix page-body-wrapper stacking */
+.page-body-wrapper {
+    z-index: auto !important;
+}
+
+/* Fix header stacking */
+.page-header {
+    z-index: 8 !important;
+}
+
+/* Fix sidebar stacking */
+.sidebar-wrapper {
+    z-index: 7 !important;
+}
+
+/* Ensure modal appears on top of everything */
+.modal {
+    z-index: 1060 !important;
+}
+
+/* Center modal vertically and horizontally */
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 1rem);
+}
+
+/* Ensure modal content fits within viewport */
+.modal-content {
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+/* Make video container responsive */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+}
+
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Ensure controls are always visible */
+.modal-body .controls {
+    background: rgba(255, 255, 255, 0.9);
+    border-top: 1px solid #dee2e6;
+}
+
+/* Fix modal backdrop */
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+/* Fix SweetAlert2 button styling */
+.swal2-confirm.btn.btn-primary {
+    color: #fff !important;
+    background-color: var(--theme-deafult) !important;
+    border-color: var(--theme-deafult) !important;
+    padding: 0.375rem 0.75rem;
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.swal2-confirm.btn.btn-primary:hover {
+    background-color: var(--theme-deafult) !important;
+    border-color: var(--theme-deafult) !important;
+    opacity: 0.9;
+}
+
+/* Ensure modal content fits within viewport */
+.modal-content {
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+/* Make video container responsive */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+}
+
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+</style>
+{% endblock %}
