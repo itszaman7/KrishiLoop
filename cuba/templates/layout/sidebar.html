@@ -4,8 +4,16 @@
     <div class="logo-wrapper">
       <a href="/dashboard" class="logo-link">
         <div class="logo-image">
-          <img class="img-fluid for-light" src="{{ url_for('static', filename= 'assets/images/favicon.png')}}" alt="logo">
-          <img class="img-fluid for-dark" src="{{ url_for('static', filename= 'assets/images/favicon.png')}}" alt="logo">
+          <img
+            class="img-fluid for-light"
+            src="{{ url_for('static', filename= 'assets/images/favicon.png')}}"
+            alt="logo"
+          />
+          <img
+            class="img-fluid for-dark"
+            src="{{ url_for('static', filename= 'assets/images/favicon.png')}}"
+            alt="logo"
+          />
         </div>
         <div class="logo-title">
           <h1>KrishiLoop</h1>
@@ -14,113 +22,146 @@
     </div>
     <div class="logo-icon-wrapper">
       <a href="/dashboard">
-        <img class="img-fluid" src="{{ url_for('static', filename= 'assets/images/logo/logo-icon.png')}}" alt="">
+        <img
+          class="img-fluid"
+          src="{{ url_for('static', filename= 'assets/images/logo/logo-icon.png')}}"
+          alt=""
+        />
       </a>
     </div>
     <nav class="sidebar-main">
-      <div class="left-arrow" id="left-arrow"><i data-feather="arrow-left"></i></div>
+      <div class="left-arrow" id="left-arrow">
+        <i data-feather="arrow-left"></i>
+      </div>
       <div id="sidebar-menu">
         <ul class="sidebar-links" id="simple-bar">
           <li class="back-btn">
-            <div class="mobile-back text-end"><span>Back</span><i class="fa-solid fa-angle-right ps-2" aria-hidden="true"></i></div>
+            <div class="mobile-back text-end">
+              <span>Back</span
+              ><i class="fa-solid fa-angle-right ps-2" aria-hidden="true"></i>
+            </div>
           </li>
           <li class="pin-title sidebar-main-title">
-            <div> 
+            <div>
               <h6>Pinned</h6>
             </div>
           </li>
-          <li class="sidebar-list"><i class="fa-solid fa-thumbtack"></i><a class="sidebar-link sidebar-title" href="/dashboard">
+          <li class="sidebar-list">
+            <i class="fa-solid fa-thumbtack"></i
+            ><a class="sidebar-link sidebar-title" href="/dashboard">
               <svg class="stroke-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-home"></use>
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-home"
+                ></use>
               </svg>
               <svg class="fill-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-home"></use>
-              </svg><span>Dashboard</span></a></li>
-          <li class="sidebar-list"><i class="fa-solid fa-thumbtack"></i><a class="sidebar-link sidebar-title" href="/workspace">
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-home"
+                ></use></svg
+              ><span>Dashboard</span></a
+            >
+          </li>
+          <li class="sidebar-list">
+            <i class="fa-solid fa-thumbtack"></i
+            ><a class="sidebar-link sidebar-title" href="/workspace">
               <svg class="stroke-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-starter-kit"></use>
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-starter-kit"
+                ></use>
               </svg>
               <svg class="fill-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-starter-kit"></use>
-              </svg><span>Workspace</span></a></li>
-         <li class="sidebar-list"><i class="fa-solid fa-thumbtack"></i><a class="sidebar-link sidebar-title" href="/batch">
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-starter-kit"
+                ></use></svg
+              ><span>Workspace</span></a
+            >
+          </li>
+          <li class="sidebar-list">
+            <i class="fa-solid fa-thumbtack"></i
+            ><a class="sidebar-link sidebar-title" href="/batch">
               <svg class="stroke-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-forms"></use>
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-orders"
+                ></use>
               </svg>
               <svg class="fill-icon">
-                <use href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-forms"></use>
-              </svg><span>Batch Manager</span></a></li> 
-        
-         
+                <use
+                  href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-orders"
+                ></use></svg
+              ><span>Batch Manager</span></a
+            >
+          </li>
         </ul>
       </div>
-      <div class="right-arrow" id="right-arrow"><i data-feather="arrow-right"></i></div>
+      <div class="right-arrow" id="right-arrow">
+        <i data-feather="arrow-right"></i>
+      </div>
     </nav>
   </div>
 </div>
 <!-- Page Sidebar Ends-->
 
 <style>
-.logo-wrapper {
+  .logo-wrapper {
     height: 80px;
     padding: 10px 15px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
+  }
 
-.logo-link {
+  .logo-link {
     display: flex;
     align-items: center;
     text-decoration: none;
     height: 100%;
     gap: 15px;
-}
+  }
 
-.logo-image {
+  .logo-image {
     height: 100%;
     width: auto;
     min-width: 50px;
     display: flex;
     align-items: center;
-}
+  }
 
-.logo-image img {
+  .logo-image img {
     height: 100%;
     width: auto;
     max-height: 60px;
     object-fit: contain;
-}
+  }
 
-.logo-title h1 {
+  .logo-title h1 {
     margin: 0;
     font-size: 24px;
     font-weight: 600;
     color: var(--theme-deafult);
     white-space: nowrap;
-}
+  }
 
-/* Responsive adjustments */
-@media (max-width: 991px) {
+  /* Responsive adjustments */
+  @media (max-width: 991px) {
     .logo-wrapper {
-        height: 70px;
+      height: 70px;
     }
     .logo-title h1 {
-        font-size: 20px;
+      font-size: 20px;
     }
     .logo-image img {
-        max-height: 50px;
+      max-height: 50px;
     }
-}
+  }
 
-@media (max-width: 767px) {
+  @media (max-width: 767px) {
     .logo-wrapper {
-        height: 60px;
-        padding: 8px 12px;
+      height: 60px;
+      padding: 8px 12px;
     }
     .logo-title h1 {
-        font-size: 18px;
+      font-size: 18px;
     }
     .logo-image img {
-        max-height: 40px;
+      max-height: 40px;
     }
-}
+  }
 </style>
