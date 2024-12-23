@@ -7,7 +7,7 @@
   });
   $(".page-wrapper").attr("class", "page-wrapper " + localStorage.getItem("page-wrapper-cuba"));
   if (localStorage.getItem("page-wrapper-cuba") === null) {
-    $(".page-wrapper").addClass("compact-wrapper");
+    $(".page-wrapper").addClass("compact-wrapper modern-type");
   }
 
   // left sidebar and vertical menu

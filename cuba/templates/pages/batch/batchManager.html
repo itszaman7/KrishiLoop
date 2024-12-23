@@ -41,6 +41,67 @@
       </div>
     </div>
 
+    <!-- Visual Analysis Section -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Batch Analytics</h5>
+          <span>Visual analysis of batch data</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="row m-0">
+            <!-- Tier Distribution -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Tier Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <div id="tier-distribution"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quality Trends -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Quality Trends</h5>
+                </div>
+                <div class="card-body">
+                  <div id="quality-trends"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price Analysis -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Price Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <div id="price-distribution"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expiry Timeline -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Expiry Analysis</h5>
+                </div>
+                <div class="card-body">
+                  <div id="expiry-analysis"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Batch Tabs -->
     <div class="col-12">
       {% include 'pages/batch/BatchTabs.html' %}
@@ -51,149 +112,120 @@
 
 {% block scriptcontent %}
 <script>
-  // Get DOM elements
+  // Original batch manager code
   const showCreateForm = document.getElementById('showCreateForm');
   const createForm = document.querySelector('.new-batch-wrapper');
   const cancelCreate = document.getElementById('cancelCreate');
   const batchForm = document.getElementById('createBatchForm');
 
-  // Show create form
+  // Show/hide form handlers
   showCreateForm.addEventListener('click', () => {
-    console.log('Show button clicked');
     showCreateForm.style.display = 'none';
     createForm.style.display = 'block';
   });
 
-  // Cancel create form
   cancelCreate.addEventListener('click', () => {
-    console.log('Cancel button clicked');
     createForm.style.display = 'none';
     showCreateForm.style.display = 'block';
   });
 
-  // Handle form submission
+  // Form submission handler
   batchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('Form submitted');
+    // ... existing form submission code ...
+  });
 
-    // Show loading state
-    Swal.fire({
-      title: 'Creating batch...',
-      text: 'Please wait',
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
+  // Visual Analysis Charts
+  document.addEventListener('DOMContentLoaded', function() {
+    // Fetch batch analysis data
+    fetch('/api/batches/analysis')
+      .then(response => response.json())
+      .then(data => {
+        initializeCharts(data);
+      })
+      .catch(error => console.error('Error:', error));
 
-    // Get form data
-    const formData = new FormData(batchForm);
-    
-    // Debug log form data
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ': ' + pair[1]);
-    }
-
-    try {
-      const response = await fetch('/batch/create', {
-        method: 'POST',
-        body: formData
-      });
-
-      console.log('Response status:', response.status); // Debug log
-      
-      const result = await response.json();
-      console.log('Response data:', result); // Debug log
-
-      if (result.success) {
-        // Success message
-        Swal.fire({
-          icon: 'success',
-          title: 'Success!',
-          text: result.message || 'Batch created successfully',
-          customClass: {
-            confirmButton: 'btn btn-primary'
-          },
-          buttonsStyling: false
-        }).then(() => {
-          // Reset form and UI
-          batchForm.reset();
-          createForm.style.display = 'none';
-          showCreateForm.style.display = 'block';
-          // Reload page to show new batch
-          window.location.reload();
-        });
-      } else {
-        // Error message with more details
-        Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: result.error || 'Failed to create batch',
-          customClass: {
-            confirmButton: 'btn btn-primary'
-          },
-          buttonsStyling: false
-        });
-      }
-    } catch (error) {
-      console.error('Fetch error:', error); // More detailed error logging
-      Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: 'Failed to create batch: ' + error.message,
-        customClass: {
-          confirmButton: 'btn btn-primary'
+    function initializeCharts(data) {
+      // Initialize charts with the same configuration as VisualAnalysis.html
+      // Tier Distribution
+      new ApexCharts(document.querySelector("#tier-distribution"), {
+        series: data.tierCounts,
+        chart: {
+          type: 'donut',
+          height: 350
         },
-        buttonsStyling: false
-      });
+        labels: ['S', 'A', 'B', 'C', 'R'],
+        colors: ['#7366ff', '#51bb25', '#f73164', '#f8d62b', '#dc3545']
+      }).render();
+
+      // Quality Trends
+      new ApexCharts(document.querySelector("#quality-trends"), {
+        series: [{
+          name: 'Quality Score',
+          data: data.qualityTrends
+        }],
+        chart: {
+          height: 350,
+          type: 'line'
+        },
+        stroke: {
+          curve: 'smooth'
+        },
+        xaxis: {
+          type: 'datetime'
+        }
+      }).render();
+
+      // Price Distribution
+      new ApexCharts(document.querySelector("#price-distribution"), {
+        series: [{
+          name: 'Price Range',
+          data: data.priceDistribution
+        }],
+        chart: {
+          height: 350,
+          type: 'bar'
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 10
+          }
+        }
+      }).render();
+
+      // Expiry Analysis
+      new ApexCharts(document.querySelector("#expiry-analysis"), {
+        series: [{
+          name: 'Expiring Items',
+          data: data.expiryTimeline
+        }],
+        chart: {
+          height: 350,
+          type: 'area'
+        },
+        xaxis: {
+          type: 'datetime'
+        }
+      }).render();
     }
   });
 </script>
-{% endblock %}
 
-{% block css %}
 <style>
+.graphCard {
+    min-height: 400px;
+}
+.apexcharts-canvas {
+    margin: 0 auto;
+}
 .new-batch-wrapper {
     margin-top: 20px;
 }
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-}
-
-.btn i {
-    font-size: 1rem;
-}
-
-/* Add spacing between cards */
 .card {
     margin-bottom: 1.5rem;
 }
-
-/* Make tabs more prominent */
-.nav-tabs {
-    border-bottom: 2px solid var(--theme-deafult);
-}
-
-.nav-tabs .nav-link {
-    padding: 1rem 1.5rem;
-    font-weight: 500;
-}
-
-.nav-tabs .nav-link.active {
-    border-color: var(--theme-deafult);
-    border-bottom: 2px solid #fff;
-    margin-bottom: -2px;
-}
-
-/* Add some spacing in the card body */
-.card-body {
-    padding: 1.5rem;
+.border-0 {
+    border: none !important;
 }
 </style>
 {% endblock %}

@@ -437,3 +437,149 @@ def save_detection():
             'success': False,
             'error': str(e)
         })      
+
+# Add this new route for batch analysis
+@main.route('/api/batches/analysis', methods=['GET'])
+def get_batch_analysis():
+    try:
+        # Get all batches
+        batches = Batch.query.all()
+        
+        # Calculate tier counts
+        tier_counts = {
+            'S': sum(1 for b in batches if b.tier_s_count > 0),
+            'A': sum(1 for b in batches if b.tier_a_count > 0),
+            'B': sum(1 for b in batches if b.tier_b_count > 0),
+            'C': sum(1 for b in batches if b.tier_c_count > 0),
+            'R': sum(1 for b in batches if b.tier_r_count > 0)
+        }
+
+        # Get all produce items
+        produce_items = Produce.query.all()
+        
+        # Calculate quality trends (last 30 days)
+        quality_trends = [
+            {
+                'x': p.created_at.strftime('%Y-%m-%d'),
+                'y': p.confidence
+            } for p in produce_items
+        ]
+
+        # Calculate price distribution
+        price_distribution = [
+            {
+                'x': 'S',
+                'y': sum(p.price for p in produce_items if p.tier == 'S') / len([p for p in produce_items if p.tier == 'S']) if len([p for p in produce_items if p.tier == 'S']) > 0 else 0
+            },
+            {
+                'x': 'A',
+                'y': sum(p.price for p in produce_items if p.tier == 'A') / len([p for p in produce_items if p.tier == 'A']) if len([p for p in produce_items if p.tier == 'A']) > 0 else 0
+            },
+            {
+                'x': 'B',
+                'y': sum(p.price for p in produce_items if p.tier == 'B') / len([p for p in produce_items if p.tier == 'B']) if len([p for p in produce_items if p.tier == 'B']) > 0 else 0
+            },
+            {
+                'x': 'C',
+                'y': sum(p.price for p in produce_items if p.tier == 'C') / len([p for p in produce_items if p.tier == 'C']) if len([p for p in produce_items if p.tier == 'C']) > 0 else 0
+            },
+            {
+                'x': 'R',
+                'y': sum(p.price for p in produce_items if p.tier == 'R') / len([p for p in produce_items if p.tier == 'R']) if len([p for p in produce_items if p.tier == 'R']) > 0 else 0
+            }
+        ]
+
+        # Calculate expiry timeline
+        expiry_timeline = [
+            {
+                'x': p.expiry_date.strftime('%Y-%m-%d'),
+                'y': 1
+            } for p in produce_items
+        ]
+
+        return jsonify({
+            'success': True,
+            'tierCounts': list(tier_counts.values()),
+            'qualityTrends': quality_trends,
+            'priceDistribution': price_distribution,
+            'expiryTimeline': expiry_timeline
+        })
+
+    except Exception as e:
+        print(f"Error in get_batch_analysis: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500      
+
+
+@main.route('/dashboard')
+def dashboard():
+    # Get statistics for the dashboard
+    batches = Batch.query.all()
+    produce_items = Produce.query.all()
+    
+    context = {
+        "breadcrumb": {
+            "parent": "Dashboard",
+            "child": "Overview"
+        },
+        "total_batches": len(batches),
+        "total_items": len(produce_items),
+        "avg_quality": round(sum(p.confidence for p in produce_items) / len(produce_items) if produce_items else 0, 2),
+        "total_value": round(sum(p.price for p in produce_items), 2)
+    }
+    
+    return render_template('pages/dashboard/dashboard.html', **context)
+
+@main.route('/api/dashboard/stats')
+def dashboard_stats():
+    try:
+        produce_items = Produce.query.all()
+        batches = Batch.query.all()
+
+        # Quality distribution over time
+        quality_distribution = [
+            {
+                'x': p.created_at.strftime('%Y-%m-%d'),
+                'y': p.confidence
+            } for p in produce_items
+        ]
+
+        # Price trends
+        price_trends = [
+            {
+                'x': p.created_at.strftime('%Y-%m-%d'),
+                'y': p.price
+            } for p in produce_items
+        ]
+
+        # Batch performance
+        batch_performance = [{
+            'name': batch.name,
+            'data': [
+                len([p for p in produce_items if p.batch_id == batch.id and p.tier == tier])
+                for tier in ['S', 'A', 'B', 'C', 'R']
+            ]
+        } for batch in batches]
+
+        # Tier distribution
+        tier_distribution = [
+            sum(1 for p in produce_items if p.tier == tier)
+            for tier in ['S', 'A', 'B', 'C', 'R']
+        ]
+
+        return jsonify({
+            'success': True,
+            'qualityDistribution': quality_distribution,
+            'priceTrends': price_trends,
+            'batchPerformance': batch_performance,
+            'tierDistribution': tier_distribution
+        })
+
+    except Exception as e:
+        print(f"Error in dashboard_stats: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500      
