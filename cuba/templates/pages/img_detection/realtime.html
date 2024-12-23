@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Real-time Detection</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mx-auto">
+                            <!-- Model Selection -->
+                            <div class="mb-3">
+                                <label class="form-label">Select Detection Type</label>
+                                <select class="form-select mb-3" id="modelSelector">
+                                    <option value="">Choose detection type...</option>
+                                    <option value="fresh">Fresh Oranges Only</option>
+                                    <option value="bad">Bad Oranges Only</option>
+                                    <option value="both">Both Types (Slower)</option>
+                                </select>
+                            </div>
+
+                            <!-- FPS Control -->
+                            <div class="mb-3">
+                                <label class="form-label">Processing Speed</label>
+                                <select class="form-select mb-3" id="fpsSelector">
+                                    <option value="200">5 FPS</option>
+                                    <option value="167">6 FPS</option>
+                                    <option value="100" selected>10 FPS</option>
+                                </select>
+                            </div>
+
+                            <div class="video-container">
+                                <video id="video" width="640" height="480" style="display: none;"></video>
+                                <canvas id="canvas" width="640" height="480"></canvas>
+                                
+                                <div class="detection-stats">
+                                    <p>Fresh Oranges: <span id="freshCount">0</span></p>
+                                    <p>Bad Oranges: <span id="badCount">0</span></p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">System Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Device Specs:</h6>
+                                                <div id="deviceSpecs"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Performance Metrics:</h6>
+                                                <div id="performanceMetrics"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-primary me-2" id="startCamera" disabled>
+                                    <i class="fa-solid fa-camera me-2"></i>Start Camera
+                                </button>
+                                <button class="btn btn-primary me-2" id="startScreen" disabled>
+                                    <i class="fa-solid fa-desktop me-2"></i>Share Screen
+                                </button>
+                                <button class="btn btn-danger" id="stopStream" disabled>
+                                    <i class="fa-solid fa-stop me-2"></i>Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let context = canvas.getContext('2d');
+let isStreaming = false;
+let mediaStream = null;
+let animationFrameId = null;
+
+// Get button elements
+const startCameraBtn = document.getElementById('startCamera');
+const startScreenBtn = document.getElementById('startScreen');
+const stopStreamBtn = document.getElementById('stopStream');
+const modelSelector = document.getElementById('modelSelector');
+const fpsSelector = document.getElementById('fpsSelector');
+
+// Enable buttons once DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    startCameraBtn.disabled = false;
+    startScreenBtn.disabled = false;
+    stopStreamBtn.disabled = true;
+});
+
+// Start camera stream
+async function startCamera() {
+    try {
+        if (isStreaming) return;
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        });
+        
+        mediaStream = stream;
+        video.srcObject = stream;
+        await video.play();
+        
+        isStreaming = true;
+        startCameraBtn.disabled = true;
+        startScreenBtn.disabled = true;
+        stopStreamBtn.disabled = false;
+        
+        processFrame();
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        alert("Error accessing webcam. Please make sure you have a camera connected and have granted permission to use it.");
+    }
+}
+
+// Start screen sharing
+async function startScreenShare() {
+    try {
+        if (isStreaming) return;
+        
+        const stream = await navigator.mediaDevices.getDisplayMedia({ 
+            video: {
+                cursor: "always"
+            },
+            audio: false
+        });
+        
+        mediaStream = stream;
+        video.srcObject = stream;
+        await video.play();
+        
+        isStreaming = true;
+        startCameraBtn.disabled = true;
+        startScreenBtn.disabled = true;
+        stopStreamBtn.disabled = false;
+        
+        processFrame();
+    } catch (err) {
+        console.error("Error sharing screen:", err);
+        alert("Error sharing screen. Please try again.");
+    }
+}
+
+// Stop streaming
+function stopStream() {
+    if (!isStreaming) return;
+    
+    // Stop animation frame
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    
+    // Stop all tracks in the media stream
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+    
+    // Clear video source
+    video.srcObject = null;
+    
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset counters
+    document.getElementById('freshCount').textContent = '0';
+    document.getElementById('badCount').textContent = '0';
+    
+    // Reset state and buttons
+    isStreaming = false;
+    startCameraBtn.disabled = false;
+    startScreenBtn.disabled = false;
+    stopStreamBtn.disabled = true;
+}
+
+// Process each frame
+async function processFrame() {
+    if (!isStreaming) return;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Get frame data as base64
+    const frameData = canvas.toDataURL('image/jpeg', 0.8);
+
+    try {
+        const response = await fetch('/start_realtime', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                frame: frameData,
+                model_type: modelSelector.value || 'both'
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            updateDisplay(result);
+        } else {
+            console.error("Detection error:", result.error);
+        }
+    } catch (err) {
+        console.error("Error processing frame:", err);
+    }
+
+    // Process next frame using the selected FPS
+    const delay = parseInt(fpsSelector.value);
+    animationFrameId = setTimeout(() => {
+        animationFrameId = requestAnimationFrame(processFrame);
+    }, delay);
+}
+
+function updateDisplay(result) {
+    if (result.frame) {
+        const img = new Image();
+        img.onload = () => {
+            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = result.frame;
+    }
+
+    if (result.detections) {
+        document.getElementById('freshCount').textContent = result.detections.fresh;
+        document.getElementById('badCount').textContent = result.detections.bad;
+    }
+
+    // Update performance metrics if available
+    if (result.performance) {
+        updatePerformanceMetrics(result.performance);
+    }
+}
+
+function updatePerformanceMetrics(performance) {
+    const metricsDiv = document.getElementById('performanceMetrics');
+    metricsDiv.innerHTML = `
+        <p>Processing Time: ${performance.processing_time_ms}ms</p>
+        <p>CPU Usage: ${performance.metrics.cpu_percent}%</p>
+        <p>RAM Usage: ${performance.metrics.ram_percent}%</p>
+        ${performance.metrics.gpu_memory_used ? 
+          `<p>GPU Memory: ${performance.metrics.gpu_memory_used.toFixed(2)} MB</p>` : ''}
+    `;
+}
+
+// Event listeners for buttons
+startCameraBtn.addEventListener('click', startCamera);
+startScreenBtn.addEventListener('click', startScreenShare);
+stopStreamBtn.addEventListener('click', stopStream);
+
+// Event listener for model selection
+modelSelector.addEventListener('change', () => {
+    if (isStreaming) {
+        // Restart processing with new model
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(processFrame);
+        }
+    }
+});
+
+</script>
+
+<style>
+.video-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    aspect-ratio: 16/9;
+}
+
+#videoElement, #outputCanvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+#deviceSpecs, #performanceMetrics {
+    font-size: 0.9rem;
+}
+
+#deviceSpecs p, #performanceMetrics p {
+    margin-bottom: 0.5rem;
+}
+
+#deviceSpecs ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+</style>
+{% endblock %} 

@@ -5,8 +5,11 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
           <h5>Select Batch</h5>
+          <a href="/realtime" class="btn btn-primary">
+            <i class="fa-solid fa-video me-2"></i>Real-time Detection
+          </a>
         </div>
         <div class="card-body">
           <select class="form-select" id="batchSelector" required>
@@ -475,6 +478,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('preview');
             video.srcObject = mediaStream;
             captureInterface.style.display = 'block';
+            
+            // Scroll to capture interface
+            captureInterface.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
             await getDevices();
         } catch (error) {
             console.error('Error accessing camera:', error);
@@ -495,6 +502,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('preview');
             video.srcObject = mediaStream;
             captureInterface.style.display = 'block';
+            
+            // Scroll to capture interface
+            captureInterface.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
         } catch (error) {
             console.error('Error sharing screen:', error);
             Swal.fire({
