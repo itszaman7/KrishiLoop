@@ -7,22 +7,16 @@ from flask_assets import Environment
 from sassutils.wsgi import SassMiddleware
 
 app = Flask(__name__)
-
-
 assets = Environment(app)
-
 
 app.config['SECRET_KEY'] = 'e5b446169dd49e3b7f1bb841'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cuba.db'
 
-
 db = SQLAlchemy(app)
-
 
 app.wsgi_app = SassMiddleware(app.wsgi_app, {
     'cuba': ('static/assets/scss', 'static/assets/css', '/static/assets/css')
 })
-
 
 class UserModelView(ModelView):
     def is_accessible(self):
@@ -46,11 +40,9 @@ class cubaAdminIndexView(AdminIndexView):
 
 admin = Admin(app,index_view=cubaAdminIndexView())
 
-
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login_home'
 login_manager.init_app(app)
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -59,13 +51,6 @@ def load_user(user_id):
 from .routes import main as main_blueprint
 app.register_blueprint(main_blueprint)
 
-# from .auth import auth as auth_blueprint
-# app.register_blueprint(auth_blueprint)
-
 from .models import User,Todo
 # admin.add_view(ModelView(Todo,db.session))
 # admin.add_view(ModelView(User,db.session))
-
-# @login_manager.user_loader
-# def load_user(user_id):
-#     return User.query.get(int(user_id))

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Container-fluid starts-->
+<div class="container-fluid">
+  <div class="row">
+    <!-- Tier Distribution -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card graphCard">
+        <div class="card-header">
+          <h5>Tier Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="tier-distribution"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quality Trends -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Quality Trends</h5>
+        </div>
+        <div class="card-body">
+          <div id="quality-trends"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Analysis -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Price Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="price-distribution"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry Timeline -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Expiry Analysis</h5>
+        </div>
+        <div class="card-body">
+          <div id="expiry-analysis"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Performance -->
+    <div class="col-sm-12 col-xl-12 box-col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Market Performance</h5>
+        </div>
+        <div class="card-body">
+          <div id="market-performance"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Comparison -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Batch Size Comparison</h5>
+        </div>
+        <div class="card-body">
+          <div id="batch-comparison"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quality Radar -->
+    <div class="col-sm-12 col-xl-6 box-col-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Quality Metrics</h5>
+        </div>
+        <div class="card-body">
+          <div id="quality-radar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Container-fluid Ends-->
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch all batch data
+    fetch('/api/batches/analysis')
+        .then(response => response.json())
+        .then(data => {
+            initializeCharts(data);
+        })
+        .catch(error => console.error('Error:', error));
+
+    function initializeCharts(data) {
+        // Tier Distribution (Donut Chart)
+        new ApexCharts(document.querySelector("#tier-distribution"), {
+            series: data.tierCounts,
+            chart: {
+                type: 'donut',
+                height: 350
+            },
+            labels: ['S', 'A', 'B', 'C', 'R'],
+            colors: ['#7366ff', '#51bb25', '#f73164', '#f8d62b', '#dc3545']
+        }).render();
+
+        // Quality Trends (Line Chart)
+        new ApexCharts(document.querySelector("#quality-trends"), {
+            series: [{
+                name: 'Quality Score',
+                data: data.qualityTrends
+            }],
+            chart: {
+                height: 350,
+                type: 'line'
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            xaxis: {
+                type: 'datetime'
+            }
+        }).render();
+
+        // Price Distribution (Column Chart)
+        new ApexCharts(document.querySelector("#price-distribution"), {
+            series: [{
+                name: 'Price Range',
+                data: data.priceDistribution
+            }],
+            chart: {
+                height: 350,
+                type: 'bar'
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 10
+                }
+            }
+        }).render();
+
+        // Expiry Analysis (Area Chart)
+        new ApexCharts(document.querySelector("#expiry-analysis"), {
+            series: [{
+                name: 'Expiring Items',
+                data: data.expiryTimeline
+            }],
+            chart: {
+                height: 350,
+                type: 'area'
+            },
+            xaxis: {
+                type: 'datetime'
+            }
+        }).render();
+
+        // Market Performance (Mixed Chart)
+        new ApexCharts(document.querySelector("#market-performance"), {
+            series: data.marketPerformance,
+            chart: {
+                height: 350,
+                type: 'line'
+            },
+            stroke: {
+                curve: 'smooth'
+            }
+        }).render();
+
+        // Batch Comparison (Bar Chart)
+        new ApexCharts(document.querySelector("#batch-comparison"), {
+            series: [{
+                name: 'Batch Size',
+                data: data.batchSizes
+            }],
+            chart: {
+                height: 350,
+                type: 'bar'
+            }
+        }).render();
+
+        // Quality Radar
+        new ApexCharts(document.querySelector("#quality-radar"), {
+            series: [{
+                name: 'Quality Metrics',
+                data: data.qualityMetrics
+            }],
+            chart: {
+                height: 350,
+                type: 'radar'
+            },
+            xaxis: {
+                categories: ['Confidence', 'Consistency', 'Freshness', 'Market Fit', 'Performance']
+            }
+        }).render();
+    }
+});
+</script>
+
+<style>
+.card-body {
+    min-height: 400px;
+}
+.apexcharts-canvas {
+    margin: 0 auto;
+}
+</style>
+{% endblock %}

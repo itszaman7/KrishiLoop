@@ -9,7 +9,7 @@
     <meta name="author" content="pixelstrap">
     <link rel="icon" href="{{ url_for('static', filename= 'assets/images/favicon.png' )}}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ url_for('static', filename= 'assets/images/favicon.png' )}}" type="image/x-icon">
-    <title>Layout Light | Cuba - Premium Admin Template By Pixelstrap</title>
+    <title>KrishiLoop</title>
     <!-- Google font-->
     <link href="https://fonts.googleapis.com/css?family=Rubik:400,400i,500,500i,700,700i&amp;display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900&amp;display=swap" rel="stylesheet">
@@ -29,12 +29,32 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename= 'assets/css/vendors/scrollbar.css')}}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename= 'assets/css/vendors/prism.css')}}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='assets/css/vendors/sweetalert2.css') }}">
+
+
+
     {% block css %} {% endblock %}
 
 
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename= 'assets/css/vendors/bootstrap.css')}}">
     <!-- App css-->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename= 'assets/css/style.css')}}">
+    <style>
+    /* Hide header and adjust spacing */
+    .page-header {
+        display: none !important;
+    }
+
+    /* Adjust page body to take full height without header */
+    .page-body-wrapper {
+        padding-top: 0 !important;
+        min-height: 100vh;
+    }
+
+    /* Adjust sidebar position */
+    .page-wrapper .page-body-wrapper .sidebar-wrapper {
+        top: 0;
+    }
+    </style>
   </head>
   <body> 
     <!-- loader starts-->
@@ -53,8 +73,8 @@
     <div class="tap-top"><i data-feather="chevrons-up"></i></div>
     <!-- tap on tap ends-->
     <!-- page-wrapper Start-->
-    <div class="page-wrapper compact-wrapper" id="pageWrapper">
-      {% include "layout/header.html" %}
+    <div class="page-wrapper compact-wrapper modern-type" id="pageWrapper">
+      <!-- {% include "layout/header.html" %} -->
       <!-- Page Body Start-->
       <div class="page-body-wrapper horizontal-menu">
         {% include "layout/sidebar.html" %}
@@ -96,10 +116,14 @@
     <script src="{{ url_for('static', filename='assets/js/sweet-alert/sweetalert.min.js') }}"></script>
 
 
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     {% block scriptcontent %} {% endblock %}
 
     <script src="{{ url_for('static', filename= 'assets/js/script.js')}}"></script>
     <script src="{{ url_for('static', filename= 'assets/js/script1.js')}}"></script>
     <script src="{{ url_for('static', filename= 'assets/js/theme-customizer/customizer.js')}}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </body>
 </html>

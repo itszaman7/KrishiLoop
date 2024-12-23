@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Create New Batch Card -->
+    <div class="col-12 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5>{{ breadcrumb.parent }}</h5>
+          <span>Create and manage batches</span>
+        </div>
+        <div class="card-body">
+          <!-- Add Batch Button -->
+          <div class="add-batch-btn-wrapper">
+            <button class="btn btn-primary w-100" id="showCreateForm">
+              <i class="fa fa-plus"></i> Create New Batch
+            </button>
+          </div>
+          
+          <!-- Create Form (Initially Hidden) -->
+          <div class="new-batch-wrapper" style="display: none;">
+            <form id="createBatchForm">
+              <div class="mb-3">
+                <label class="form-label">Batch Name</label>
+                <input type="text" class="form-control" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="3"></textarea>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-danger" id="cancelCreate">Cancel</button>
+                <button type="submit" class="btn btn-success flex-grow-1">Create Batch</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Analysis Section -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Batch Analytics</h5>
+          <span>Visual analysis of batch data</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="row m-0">
+            <!-- Tier Distribution -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Tier Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <div id="tier-distribution"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quality Trends -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Quality Trends</h5>
+                </div>
+                <div class="card-body">
+                  <div id="quality-trends"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price Analysis -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Price Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <div id="price-distribution"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expiry Timeline -->
+            <div class="col-sm-12 col-xl-6 box-col-6">
+              <div class="card border-0">
+                <div class="card-header">
+                  <h5>Expiry Analysis</h5>
+                </div>
+                <div class="card-body">
+                  <div id="expiry-analysis"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Tabs -->
+    <div class="col-12">
+      {% include 'pages/batch/BatchTabs.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+  // Original batch manager code
+  const showCreateForm = document.getElementById('showCreateForm');
+  const createForm = document.querySelector('.new-batch-wrapper');
+  const cancelCreate = document.getElementById('cancelCreate');
+  const batchForm = document.getElementById('createBatchForm');
+
+  // Show/hide form handlers
+  showCreateForm.addEventListener('click', () => {
+    showCreateForm.style.display = 'none';
+    createForm.style.display = 'block';
+  });
+
+  cancelCreate.addEventListener('click', () => {
+    createForm.style.display = 'none';
+    showCreateForm.style.display = 'block';
+  });
+
+  // Form submission handler
+  batchForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    // ... existing form submission code ...
+  });
+
+  // Visual Analysis Charts
+  document.addEventListener('DOMContentLoaded', function() {
+    // Fetch batch analysis data
+    fetch('/api/batches/analysis')
+      .then(response => response.json())
+      .then(data => {
+        initializeCharts(data);
+      })
+      .catch(error => console.error('Error:', error));
+
+    function initializeCharts(data) {
+      // Initialize charts with the same configuration as VisualAnalysis.html
+      // Tier Distribution
+      new ApexCharts(document.querySelector("#tier-distribution"), {
+        series: data.tierCounts,
+        chart: {
+          type: 'donut',
+          height: 350
+        },
+        labels: ['S', 'A', 'B', 'C', 'R'],
+        colors: ['#7366ff', '#51bb25', '#f73164', '#f8d62b', '#dc3545']
+      }).render();
+
+      // Quality Trends
+      new ApexCharts(document.querySelector("#quality-trends"), {
+        series: [{
+          name: 'Quality Score',
+          data: data.qualityTrends
+        }],
+        chart: {
+          height: 350,
+          type: 'line'
+        },
+        stroke: {
+          curve: 'smooth'
+        },
+        xaxis: {
+          type: 'datetime'
+        }
+      }).render();
+
+      // Price Distribution
+      new ApexCharts(document.querySelector("#price-distribution"), {
+        series: [{
+          name: 'Price Range',
+          data: data.priceDistribution
+        }],
+        chart: {
+          height: 350,
+          type: 'bar'
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 10
+          }
+        }
+      }).render();
+
+      // Expiry Analysis
+      new ApexCharts(document.querySelector("#expiry-analysis"), {
+        series: [{
+          name: 'Expiring Items',
+          data: data.expiryTimeline
+        }],
+        chart: {
+          height: 350,
+          type: 'area'
+        },
+        xaxis: {
+          type: 'datetime'
+        }
+      }).render();
+    }
+  });
+</script>
+
+<style>
+.graphCard {
+    min-height: 400px;
+}
+.apexcharts-canvas {
+    margin: 0 auto;
+}
+.new-batch-wrapper {
+    margin-top: 20px;
+}
+.card {
+    margin-bottom: 1.5rem;
+}
+.border-0 {
+    border: none !important;
+}
+</style>
+{% endblock %}

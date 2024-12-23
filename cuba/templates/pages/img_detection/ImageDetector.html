@@ -40,6 +40,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
+                        <!-- Fresh Orange Section -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
@@ -47,13 +48,44 @@
                                 </div>
                                 <div class="card-body">
                                     <img id="freshResult" class="img-fluid" src="" alt="Fresh orange detection">
-                                    <div id="freshStats" class="mt-3">
-                                        <h6>Detections:</h6>
-                                        <div id="freshDetections"></div>
+                                    <div id="freshAnalysis" class="mt-4">
+                                        <h6>Analysis:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <th>Total Count:</th>
+                                                    <td id="freshTotalCount">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Average Price:</th>
+                                                    <td id="freshAvgPrice">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Total Value:</th>
+                                                    <td id="freshTotalValue">-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        
+                                        <h6 class="mt-3">Tier Distribution:</h6>
+                                        <div id="freshTierDist" class="small"></div>
+                                        
+                                        <h6 class="mt-3">Expiry Range:</h6>
+                                        <div id="freshExpiry" class="small"></div>
+                                        
+                                        <h6 class="mt-3">Market Recommendations:</h6>
+                                        <div id="freshMarketRec" class="small"></div>
+                                    </div>
+                                    
+                                    <div id="freshDetections" class="mt-3">
+                                        <h6>Individual Detections:</h6>
+                                        <!-- Individual detections will be populated here -->
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Bad Orange Section -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
@@ -61,9 +93,38 @@
                                 </div>
                                 <div class="card-body">
                                     <img id="badResult" class="img-fluid" src="" alt="Bad orange detection">
-                                    <div id="badStats" class="mt-3">
-                                        <h6>Detections:</h6>
-                                        <div id="badDetections"></div>
+                                    <div id="badAnalysis" class="mt-4">
+                                        <h6>Analysis:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <th>Total Count:</th>
+                                                    <td id="badTotalCount">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Average Price:</th>
+                                                    <td id="badAvgPrice">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Total Value:</th>
+                                                    <td id="badTotalValue">-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        
+                                        <h6 class="mt-3">Tier Distribution:</h6>
+                                        <div id="badTierDist" class="small"></div>
+                                        
+                                        <h6 class="mt-3">Expiry Range:</h6>
+                                        <div id="badExpiry" class="small"></div>
+                                        
+                                        <h6 class="mt-3">Market Recommendations:</h6>
+                                        <div id="badMarketRec" class="small"></div>
+                                    </div>
+                                    
+                                    <div id="badDetections" class="mt-3">
+                                        <h6>Individual Detections:</h6>
+                                        <!-- Individual detections will be populated here -->
                                     </div>
                                 </div>
                             </div>
@@ -74,3 +135,45 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Update the detection results display
+    function updateDetectionResults(result, type) {
+        const analysis = type === 'fresh' ? result.fresh_analysis : result.bad_analysis;
+        const detections = type === 'fresh' ? result.fresh_detections : result.bad_detections;
+        
+        // Update image
+        document.getElementById(`${type}Result`).src = type === 'fresh' ? result.fresh_image : result.bad_image;
+        
+        // Update analysis
+        document.getElementById(`${type}TotalCount`).textContent = analysis.total_count;
+        document.getElementById(`${type}AvgPrice`).textContent = `${analysis.price_analysis.average_price} BDT`;
+        document.getElementById(`${type}TotalValue`).textContent = `${analysis.price_analysis.total_value} BDT`;
+        
+        // Update tier distribution
+        const tierDist = Object.entries(analysis.tier_distribution)
+            .map(([tier, count]) => `${tier}: ${count} oranges`)
+            .join('<br>');
+        document.getElementById(`${type}TierDist`).innerHTML = tierDist;
+        
+        // Update expiry range
+        document.getElementById(`${type}Expiry`).innerHTML = 
+            `Earliest: ${analysis.expiry_analysis.earliest}<br>` +
+            `Latest: ${analysis.expiry_analysis.latest}`;
+        
+        // Update market recommendations
+        document.getElementById(`${type}MarketRec`).innerHTML = 
+            analysis.market_recommendations.join('<br>');
+        
+        // Update individual detections
+        const detectionsHtml = detections.map(det => `
+            <div class="alert ${type === 'fresh' ? 'alert-success' : 'alert-danger'} p-2 mb-2">
+                <strong>Tier ${det.tier}</strong><br>
+                Confidence: ${(det.confidence * 100).toFixed(2)}%<br>
+                Price: ${det.predicted_price} BDT<br>
+                Expiry: ${det.expiry_date}
+            </div>
+        `).join('');
+        document.getElementById(`${type}Detections`).innerHTML = detectionsHtml;
+    }
+</script>

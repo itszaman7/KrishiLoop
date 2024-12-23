@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Statistics Cards Row -->
+  <div class="row">
+    <!-- Total Batches -->
+    <div class="col-sm-6 col-xl-3 col-lg-6">
+      <div class="card o-hidden hover-card">
+        <div class="bg-primary b-r-4 card-body stat-widget">
+          <div class="media align-items-center">
+            <div class="media-body">
+              <span class="m-0 text-white">Total Batches</span>
+              <h4 class="mb-0 counter text-white">{{ total_batches }}</h4>
+              <i class="icon-bg" data-feather="database"></i>
+            </div>
+            <div class="align-self-center icon-box">
+              <i data-feather="database" class="text-white"></i>
+            </div>
+          </div>
+          <div class="progress-widget">
+            <div class="progress sm-progress-bar progress-animate">
+              <div class="progress-gradient-primary" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                <span class="animate-circle"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Total Items -->
+    <div class="col-sm-6 col-xl-3 col-lg-6">
+      <div class="card o-hidden hover-card">
+        <div class="bg-secondary b-r-4 card-body stat-widget">
+          <div class="media align-items-center">
+            <div class="media-body">
+              <span class="m-0 text-white">Total Items</span>
+              <h4 class="mb-0 counter text-white">{{ total_items }}</h4>
+              <i class="icon-bg" data-feather="shopping-bag"></i>
+            </div>
+            <div class="align-self-center icon-box">
+              <i data-feather="shopping-bag" class="text-white"></i>
+            </div>
+          </div>
+          <div class="progress-widget">
+            <div class="progress sm-progress-bar progress-animate">
+              <div class="progress-gradient-secondary" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">
+                <span class="animate-circle"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Average Quality -->
+    <div class="col-sm-6 col-xl-3 col-lg-6">
+      <div class="card o-hidden hover-card">
+        <div class="bg-primary b-r-4 card-body stat-widget">
+          <div class="media align-items-center">
+            <div class="media-body">
+              <span class="m-0 text-white">Avg Quality</span>
+              <h4 class="mb-0 counter text-white">{{ avg_quality }}%</h4>
+              <i class="icon-bg" data-feather="star"></i>
+            </div>
+            <div class="align-self-center icon-box">
+              <i data-feather="star" class="text-white"></i>
+            </div>
+          </div>
+          <div class="progress-widget">
+            <div class="progress sm-progress-bar progress-animate">
+              <div class="progress-gradient-primary" role="progressbar" style="width: {{ avg_quality }}%" aria-valuenow="{{ avg_quality }}" aria-valuemin="0" aria-valuemax="100">
+                <span class="animate-circle"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Total Value -->
+    <div class="col-sm-6 col-xl-3 col-lg-6">
+      <div class="card o-hidden hover-card">
+        <div class="bg-secondary b-r-4 card-body stat-widget">
+          <div class="media align-items-center">
+            <div class="media-body">
+              <span class="m-0 text-white">Total Value</span>
+              <h4 class="mb-0 counter text-white">${{ total_value }}</h4>
+              <i class="icon-bg" data-feather="dollar-sign"></i>
+            </div>
+            <div class="align-self-center icon-box">
+              <i data-feather="dollar-sign" class="text-white"></i>
+            </div>
+          </div>
+          <div class="progress-widget">
+            <div class="progress sm-progress-bar progress-animate">
+              <div class="progress-gradient-secondary" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
+                <span class="animate-circle"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row">
+    <!-- Quality Distribution -->
+    <div class="col-xl-6 col-lg-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Quality Distribution</h5>
+        </div>
+        <div class="card-body area-chart-container">
+          <div id="quality-distribution"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Trends -->
+    <div class="col-xl-6 col-lg-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Price Trends</h5>
+        </div>
+        <div class="card-body line-chart-container">
+          <div id="price-trends"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second Charts Row -->
+  <div class="row">
+    <!-- Batch Performance -->
+    <div class="col-xl-8 col-lg-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Batch Performance</h5>
+        </div>
+        <div class="card-body bar-chart-container">
+          <div id="batch-performance"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier Distribution -->
+    <div class="col-xl-4 col-lg-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Tier Distribution</h5>
+        </div>
+        <div class="card-body donut-chart-container">
+          <div id="tier-distribution"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/dashboard/stats')
+        .then(response => response.json())
+        .then(data => {
+            initializeCharts(data);
+        })
+        .catch(error => console.error('Error:', error));
+
+    function initializeCharts(data) {
+        // Convert quality values to percentages
+        const qualityData = data.qualityDistribution.map(item => ({
+            x: item.x,
+            y: Math.round(item.y * 100) // Convert decimal to percentage
+        }));
+
+        // Quality Distribution
+        new ApexCharts(document.querySelector("#quality-distribution"), {
+            series: [{
+                name: 'Quality Score',
+                data: qualityData
+            }],
+            chart: {
+                height: '100%',
+                type: 'area',
+                toolbar: {
+                    show: false
+                }
+            },
+            xaxis: {
+                type: 'datetime'
+            },
+            yaxis: {
+                labels: {
+                    formatter: function(val) {
+                        return val + "%"
+                    }
+                }
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            responsive: [{
+                breakpoint: 576,
+                options: {
+                    chart: {
+                        height: 250
+                    }
+                }
+            }]
+        }).render();
+
+        // Price Trends
+        new ApexCharts(document.querySelector("#price-trends"), {
+            series: [{
+                name: 'Average Price',
+                data: data.priceTrends
+            }],
+            chart: {
+                height: '100%',
+                type: 'line',
+                toolbar: {
+                    show: false
+                }
+            },
+            stroke: {
+                curve: 'straight'
+            },
+            responsive: [{
+                breakpoint: 576,
+                options: {
+                    chart: {
+                        height: 250
+                    }
+                }
+            }]
+        }).render();
+
+        // Batch Performance
+        new ApexCharts(document.querySelector("#batch-performance"), {
+            series: data.batchPerformance,
+            chart: {
+                height: '100%',
+                type: 'bar',
+                stacked: true,
+                toolbar: {
+                    show: false
+                }
+            },
+            responsive: [{
+                breakpoint: 576,
+                options: {
+                    chart: {
+                        height: 250
+                    }
+                }
+            }]
+        }).render();
+
+        // Tier Distribution
+        new ApexCharts(document.querySelector("#tier-distribution"), {
+            series: data.tierDistribution,
+            chart: {
+                height: '100%',
+                type: 'donut',
+                toolbar: {
+                    show: false
+                }
+            },
+            labels: ['S', 'A', 'B', 'C', 'R'],
+            colors: ['#7366ff', '#51bb25', '#f73164', '#f8d62b', '#dc3545'],
+            responsive: [{
+                breakpoint: 576,
+                options: {
+                    chart: {
+                        height: 250
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+        }).render();
+    }
+});
+</script>
+
+<style>
+.card {
+    margin-bottom: 30px;
+}
+
+/* Specific chart container heights */
+.area-chart-container,
+.line-chart-container {
+    height: 350px;
+    position: relative;
+    padding: 15px;
+}
+
+.bar-chart-container {
+    height: 400px;
+    position: relative;
+    padding: 15px;
+}
+
+.donut-chart-container {
+    height: 400px;
+    position: relative;
+    padding: 15px;
+}
+
+/* Make charts responsive */
+.card-body > div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.static-top-widget .media-body {
+    padding-left: 30px;
+}
+
+.counter {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.icon-bg {
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    opacity: 0.2;
+    font-size: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .area-chart-container,
+    .line-chart-container,
+    .bar-chart-container,
+    .donut-chart-container {
+        height: 300px;
+    }
+}
+
+/* Fix ApexCharts container */
+.apexcharts-canvas {
+    position: relative !important;
+    width: 100% !important;
+}
+
+.apexcharts-inner {
+    transform-origin: left top;
+}
+
+/* Card Styling */
+.hover-card {
+    transition: transform 0.3s ease;
+    margin-bottom: 1.5rem;
+    height: 140px;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-widget {
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+/* Media Container */
+.media.align-items-center {
+    margin-bottom: 10px;
+}
+
+/* Icon Styling */
+.icon-box {
+    width: 45px;
+    height: 45px;
+    min-width: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    margin-left: 15px;
+}
+
+.icon-bg {
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    opacity: 0.15;
+    font-size: 100px;
+    transform: rotate(15deg);
+    pointer-events: none;
+}
+
+/* Text Styling */
+.media-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.counter {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 5px;
+    white-space: nowrap;
+}
+
+/* Progress Bar */
+.progress-widget {
+    margin-top: auto;
+}
+
+.sm-progress-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-gradient-primary,
+.progress-gradient-secondary {
+    background: linear-gradient(90deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.8) 100%);
+    transition: width 0.6s ease;
+    height: 100%;
+    position: relative;
+}
+
+.animate-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    right: 0;
+    top: -3px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1199px) {
+    .hover-card {
+        height: 130px;
+    }
+    .stat-widget {
+        padding: 15px;
+    }
+    .counter {
+        font-size: 20px;
+    }
+    .icon-box {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+}
+
+@media (max-width: 767px) {
+    .hover-card {
+        height: 120px;
+    }
+    .stat-widget {
+        padding: 12px;
+    }
+    .counter {
+        font-size: 18px;
+    }
+    .icon-box {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+    }
+    .icon-bg {
+        font-size: 80px;
+    }
+}
+
+/* Fix for very small screens */
+@media (max-width: 375px) {
+    .hover-card {
+        height: 110px;
+    }
+    .stat-widget {
+        padding: 10px;
+    }
+    .icon-box {
+        margin-left: 10px;
+    }
+}
+</style>
+{% endblock %}
