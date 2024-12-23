@@ -29,7 +29,7 @@ def allowed_file(filename):
 @main.route('/index')
 def indexPage():
    context={"breadcrumb":{"parent":"Layout Light","child":"Color version"}}
-   return render_template('general/index.html',**context)
+   return render_template('pages/dashboard/dashboard.html',**context)
 
 @main.route("/workspace")
 def workspace():
