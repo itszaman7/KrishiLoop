@@ -2,7 +2,7 @@
 <div class="sidebar-wrapper" data-sidebar-layout="stroke-svg">
   <div>
     <div class="logo-wrapper">
-      <a href="/dashboard" class="logo-link">
+      <a href="/dashboard?layout=london" class="logo-link">
         <div class="logo-image">
           <img
             class="img-fluid for-light"
@@ -21,7 +21,7 @@
       </a>
     </div>
     <div class="logo-icon-wrapper">
-      <a href="/dashboard">
+      <a href="/dashboard?layout=london">
         <img
           class="img-fluid"
           src="{{ url_for('static', filename= 'assets/images/logo/logo-icon.png')}}"
@@ -48,7 +48,7 @@
           </li>
           <li class="sidebar-list">
             <i class="fa-solid fa-thumbtack"></i
-            ><a class="sidebar-link sidebar-title" href="/dashboard">
+            ><a class="sidebar-link sidebar-title" href="/dashboard?layout=london">
               <svg class="stroke-icon">
                 <use
                   href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-home"
@@ -63,7 +63,7 @@
           </li>
           <li class="sidebar-list">
             <i class="fa-solid fa-thumbtack"></i
-            ><a class="sidebar-link sidebar-title" href="/workspace">
+            ><a class="sidebar-link sidebar-title" href="/workspace?layout=london">
               <svg class="stroke-icon">
                 <use
                   href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#stroke-starter-kit"
@@ -78,7 +78,7 @@
           </li>
           <li class="sidebar-list">
             <i class="fa-solid fa-thumbtack"></i
-            ><a class="sidebar-link sidebar-title" href="/batch">
+            ><a class="sidebar-link sidebar-title" href="/batch?layout=london">
               <svg class="stroke-icon">
                 <use
                   href="{{ url_for('static', filename= 'assets/svg/icon-sprite.svg' )}}#fill-orders"

@@ -13,6 +13,7 @@ from cuba.models import Batch, Stock, Produce, Sale, Detection
 from datetime import datetime
 import builtins  # For getattr function
 import time
+from cuba.detection.realtime import RealtimeDetector
 
 main = Blueprint('main',__name__)
 
@@ -22,6 +23,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Initialize detector once
 orange_detector = OrangeDetector()
 
+# Create a global detector instance
+realtime_detector = RealtimeDetector()
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -29,7 +33,7 @@ def allowed_file(filename):
 @main.route('/index')
 def indexPage():
    context={"breadcrumb":{"parent":"Layout Light","child":"Color version"}}
-   return render_template('general/index.html',**context)
+   return render_template('pages/dashboard/dashboard.html',**context)
 
 @main.route("/workspace")
 def workspace():
@@ -583,3 +587,29 @@ def dashboard_stats():
             'success': False,
             'error': str(e)
         }), 500      
+
+@main.route('/realtime')
+def realtime_detection():
+    context = {
+        "breadcrumb": {
+            "parent": "Image Detection",
+            "parent_url": "/img_detection",
+            "child": "Real-time Detection"
+        }
+    }
+    return render_template('pages/img_detection/realtime.html', **context)
+
+@main.route('/start_realtime', methods=['POST'])
+def start_realtime():
+    try:
+        data = request.get_json()
+        if not data or 'frame' not in data:
+            return jsonify({'success': False, 'error': 'No frame data provided'})
+
+        model_type = data.get('model_type', 'both')
+        # Use the global detector instance instead of creating a new one
+        result = realtime_detector.process_frame(data['frame'], model_type)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Realtime detection error: {str(e)}")  # Add logging
+        return jsonify({'success': False, 'error': str(e)})

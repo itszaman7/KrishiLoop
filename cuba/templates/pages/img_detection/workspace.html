@@ -5,8 +5,11 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
           <h5>Select Batch</h5>
+          <a href="/realtime" class="btn btn-primary">
+            <i class="fa-solid fa-video me-2"></i>Real-time Detection
+          </a>
         </div>
         <div class="card-body">
           <select class="form-select" id="batchSelector" required>
@@ -475,6 +478,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('preview');
             video.srcObject = mediaStream;
             captureInterface.style.display = 'block';
+            
+            // Scroll to capture interface
+            captureInterface.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
             await getDevices();
         } catch (error) {
             console.error('Error accessing camera:', error);
@@ -495,6 +502,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('preview');
             video.srcObject = mediaStream;
             captureInterface.style.display = 'block';
+            
+            // Scroll to capture interface
+            captureInterface.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
         } catch (error) {
             console.error('Error sharing screen:', error);
             Swal.fire({
@@ -614,13 +625,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('stopCapture')?.addEventListener('click', stopCapture);
     document.getElementById('closeCapture')?.addEventListener('click', stopCapture);
 
-    document.getElementById('captureImage').addEventListener('click', () => {
-        const batchId = document.getElementById('batchSelector').value;
-        
-        if (!batchId) {
+    const captureImage = document.getElementById('captureImage');
+    captureImage.addEventListener('click', () => {
+        const video = document.getElementById('preview');
+        if (!video || !video.srcObject) {
             Swal.fire({
                 title: "Error!",
-                text: "Please select a batch first",
+                text: "No active camera or screen feed",
                 icon: "error",
                 buttonsStyling: false,
                 customClass: { confirmButton: 'btn btn-primary' }
@@ -628,14 +639,67 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Rest of your capture code...
-        canvas.toBlob(blob => {
+        // Create a canvas element
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw the current video frame
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // Convert to blob
+        canvas.toBlob((blob) => {
+            const batchId = document.getElementById('batchSelector').value;
+            if (!batchId) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Please select a batch first",
+                    icon: "error",
+                    buttonsStyling: false,
+                    customClass: { confirmButton: 'btn btn-primary' }
+                });
+                return;
+            }
+
+            // Create form data
             const formData = new FormData();
-            formData.append('image', blob);
-            formData.append('batch_id', batchId);  // Add batch_id to form data
-            
-            // Rest of your code...
-        });
+            formData.append('image', blob, 'screenshot.png');
+            formData.append('batch_id', batchId);
+
+            // Show loading state
+            Swal.fire({
+                title: 'Uploading...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Upload the image
+            fetch('/upload-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    addImageToGallery(data.filename, blob);
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                Swal.fire({
+                    title: "Error!",
+                    text: "Failed to upload image",
+                    icon: "error",
+                    buttonsStyling: false,
+                    customClass: { confirmButton: 'btn btn-primary' }
+                });
+            });
+        }, 'image/png');
     });
 
     // Add this after your existing detection handler

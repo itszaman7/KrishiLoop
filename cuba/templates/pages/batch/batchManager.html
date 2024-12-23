@@ -112,7 +112,7 @@
 
 {% block scriptcontent %}
 <script>
-  // Original batch manager code
+  // Get DOM elements
   const showCreateForm = document.getElementById('showCreateForm');
   const createForm = document.querySelector('.new-batch-wrapper');
   const cancelCreate = document.getElementById('cancelCreate');
@@ -120,11 +120,13 @@
 
   // Show/hide form handlers
   showCreateForm.addEventListener('click', () => {
+    console.log('Show button clicked');
     showCreateForm.style.display = 'none';
     createForm.style.display = 'block';
   });
 
   cancelCreate.addEventListener('click', () => {
+    console.log('Cancel button clicked');
     createForm.style.display = 'none';
     showCreateForm.style.display = 'block';
   });
@@ -132,7 +134,78 @@
   // Form submission handler
   batchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    // ... existing form submission code ...
+    console.log('Form submitted');
+
+    // Show loading state
+    Swal.fire({
+      title: 'Creating batch...',
+      text: 'Please wait',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Get form data
+    const formData = new FormData(batchForm);
+    
+    // Debug log form data
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    try {
+      const response = await fetch('/batch/create', {
+        method: 'POST',
+        body: formData
+      });
+
+      console.log('Response status:', response.status);
+      
+      const result = await response.json();
+      console.log('Response data:', result);
+
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: result.message || 'Batch created successfully',
+          customClass: {
+            confirmButton: 'btn btn-primary'
+          },
+          buttonsStyling: false
+        }).then(() => {
+          // Reset form and UI
+          batchForm.reset();
+          createForm.style.display = 'none';
+          showCreateForm.style.display = 'block';
+          // Reload page to show new batch
+          window.location.reload();
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: result.error || 'Failed to create batch',
+          customClass: {
+            confirmButton: 'btn btn-primary'
+          },
+          buttonsStyling: false
+        });
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Failed to create batch: ' + error.message,
+        customClass: {
+          confirmButton: 'btn btn-primary'
+        },
+        buttonsStyling: false
+      });
+    }
   });
 
   // Visual Analysis Charts
